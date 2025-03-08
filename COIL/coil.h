@@ -63,7 +63,7 @@
   #define COIL_MATH_DIV  ((uint8_t)0x43)
   #define COIL_MATH_MOD  ((uint8_t)0x44)
   #define COIL_MATH_CMP  ((uint8_t)0x61)
-// SECTION BIT
+// SECTION BIT OPERATIONS
   #define COIL_BIT_CONT  ((uint8_t)0x5F)
   #define COIL_BIT_SL    ((uint8_t)0x50)
   #define COIL_BIT_SR    ((uint8_t)0x51)
@@ -75,13 +75,7 @@
 #define COIL_OPCODE_TYPE uint8_t
 #define COIL_OPCODE_PRINT "%02X"
 
-// --- GLOBAL TOKENS --- //
-  #define COIL_TOKENS_OF_TYPE_DEF 0xC0
-  struct CoilTokType {
-    // some magic word to differntiate different token types
-    uint16_t magicword;
-  };
-// --- DEFAULT TOKENS --- //
+// --- TOKENS --- //
 // Auxiliary
   typedef struct CoilTokType CoilTokType_t;
   struct CoilTokHeader {
@@ -90,7 +84,9 @@
   };
   typedef struct CoilTokHeader CoilTokHeader_t;
 // Directive Tokens
-// Control Tokens
 // Value Operands
-// Operand Tokens
-// --- LEAFS --- //
+// Control Tokens
+// Memory Operations Tokens
+// Byte   Operations Tokens
+// Bit    Operations Tokens
+// --- TOKENS(END) --- //

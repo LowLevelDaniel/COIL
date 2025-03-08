@@ -5,8 +5,7 @@
 */
 // --- COIL OPCODE --- //
 // SECTION INTERNAL
-#define COIL_SECTION_EOF ((uint8_t)0x00)
-
+  #define COIL_INT_EOF ((uint8_t)0x00)
 // SECTION DIRECTIVE
   // for an extra 255 directives if needed via another uint8_t immediatly following this
   #define COIL_DIR_CONT ((uint8_t)0x0F)
@@ -72,6 +71,7 @@
   #define COIL_BIT_XOR   ((uint8_t)0x54)
   #define COIL_BIT_TEST  ((uint8_t)0x55)
 // other
+#define COIL_OPCODE_SIZE 1
 #define COIL_OPCODE_TYPE uint8_t
 #define COIL_OPCODE_PRINT "%02X"
 
@@ -79,10 +79,12 @@
 // Auxiliary
   typedef struct CoilTokType CoilTokType_t;
   struct CoilTokHeader {
-    COIL_OPCODE_TYPE type;
     uint64_t size;
+    COIL_OPCODE_TYPE type[5];
   };
   typedef struct CoilTokHeader CoilTokHeader_t;
+  void coil_write_header(void *buf, size_t bufsize, CoilTokHeader_t *header);
+  void coil_read_header(void *buf, size_t bufsize, CoilTokHeader_t *header);
 // Directive Tokens
 // Value Operands
 // Control Tokens

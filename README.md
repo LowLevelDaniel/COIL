@@ -1,13 +1,15 @@
 # Computer Oriented Intermediate Language
-Computer Oriented Intermediate Language (COIL) is the mix of a new format for cross compatible machine language, similar to wasm if you will. Unlike normal assembly/machine languages there are some abstractions to help developers, the compilers / interpreters should be in charge of optimizations, variables and symbols. The reason is of course because machines have different register counts and stack demands. By abstracting variables it allows the coil compiler / interpreter to use the registers based on the system. The reason i even call it an assembly language is simply because it doesn't have functions, its control flow is indistinguishable from assembly language. Control flow is of course similar on most systems.
+Computer Oriented Intermediate Language (COIL) is an intermediate language built for all types of processing units including (CPUs, GPUs, TPUs and all other processing units which take in opcode and perform actions). COIL is built to be highly optimizable made to be compatible with all potential processing extensions like vectors, encryption or even security like built in pages via the cpu and virtualization extensions. 
 <br>
+COIL exposes such features through something like a float-vec-3 which can be a typename for some simd instruction register set and when coil encounters this type the assembler can perform optimizations using any available simd instruction set that supports the type wanted.
 <br>
-COIL is built with CPUs to begin with to make it easier to get this project of the ground but in the future it should be an asynchronous cross device compatible language essentially meaning that it will support devices with the ability to complete parallel actions like CPUs and GPUs or any other processing unit in the future. Eventually it should also be compatible with quantum computers but this is of course maybe still a decade out from the beginning of this project.
+Anything that isn't supported by the processing unit will be supported the COIL assembler though a static library or inline code i.e the vector operations will be unrolled and performed synchrously for processing units lacking vector support.
+<br>
+All possible extensions a processing unit can support COIL will support.
 <br>
 <br>
 This Repositroy defines no such COIL Assembler, a seperate COILA exists for this purpose. Here is the needed functionality to read and write COIL tokens to be used by COIL assemblers and COIL writers.
-<br>
-See COIL/in for COIL Assembler Creators or see COIL/out for programming language developers.
+
  
 
 

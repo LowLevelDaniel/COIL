@@ -63,10 +63,6 @@ builddir/
 ehthumbs.db
 Thumbs.db
 
-# Generated documentation
-docs/
-html/
-latex/
 
 # Python cache files
 __pycache__/

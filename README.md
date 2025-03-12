@@ -1,54 +1,83 @@
-# COIL - Computer Oriented Intermediate Language
-
-COIL (Computer Oriented Intermediate Language) is a fast, space-efficient, and extensible language designed to serve as an assembly language replacement for compilers and interpreters.
+# COIL: Compiler Optimization Intermediate Language
 
 ## Overview
 
-COIL bridges the gap between high-level languages and assembly by providing a consistent abstraction layer that works across different architectures and processing units. It maintains the power and flexibility of assembly while adding important abstractions that make cross-platform development more manageable.
+COIL (Compiler Optimization Intermediate Language) is a binary intermediate representation designed to serve as a universal target for compilers across diverse processing units. COIL operates at the lowest level and can be used without a runtime system, making it suitable for applications like bootloaders and UEFI programming, while still providing capabilities for modern hardware.
 
-Key features of COIL include:
-- **Cross-architectural compatibility**: Works across different Processing Unit architectures
-- **Cross-processing unit compatibility**: Works across different processing units (CPU, GPU, DSP, NPU, etc.)
-- **Assembly-like control flow**: Maintains familiar assembly concepts like labels, jumps, and branches
-- **Value system abstraction**: Replaces direct register/stack management with abstract value categories
-- **Scope-based lifetime management**: Manages variable lifetimes through scopes
-- **Universal feature availability**: All features (64 bit integer, FPU, SIMD, atomics, crypto, etc.) are available on all targets
-- **Custom object Format**: Optimized format for space efficient COIL code.
-- **Custom optimized object format**: Optimized format for machine code
+## Core Design Principles
 
-## Core Philosophy
+- **Binary First**: COIL is designed as a pure binary representation for maximum efficiency
+- **Runtime Optional**: No runtime system required for core functionality
+- **Universal Target Support**: Seamless targeting of CPUs, GPUs, NPUs, TPUs, FPGAs, ASICs, and more
+- **Zero-Cost Abstraction**: Full hardware capability exposure without performance compromises
+- **Type and Memory Safety**: Strong type checking and memory safety validation
+- **Forward Compatibility**: Extensible design accommodating future hardware innovations
+- **Deterministic Execution**: Predictable behavior across implementations
+- **Hardware-Specific Optimization**: Direct access to specialized hardware features
 
-COIL's core design philosophy includes several key principles:
+## Documentation Structure
 
-1. **Uniform Feature Availability**: Every COIL opcode will be able to be implemented on ever COIL target even if there isn't a direct native opcode translation.
+COIL documentation is organized into the following files:
 
-2. **Computer-Oriented Design**: COIL is explicitly designed to be generated and consumed by compilers and interpreters, not humans. This focus allows it to prioritize consistency and machine-friendliness.
+### Core Components (No Runtime Required)
+- **[object_format.md](object_format.md)**: Binary object file format specification
+- **[instruction_set.md](instruction_set.md)**: Comprehensive instruction set documentation
+- **[type_system.md](type_system.md)**: Type system specification
+- **[memory_model.md](memory_model.md)**: Memory spaces, allocation, and management
+- **[processing_units.md](processing_units.md)**: Processing unit classification and capabilities
+- **[serialization_format.md](serialization_format.md)**: Binary serialization format specification
 
-## Project Status
+### Extended Components (Optional)
+- **[execution_model.md](execution_model.md)**: Heterogeneous execution model (optional runtime)
+- **[optimization.md](optimization.md)**: Optimization strategies
+- **[config_format.md](config_format.md)**: Configuration file format for cross-compilation
+- **[debugging.md](debugging.md)**: Debugging support specification
+- **[implementation_guide.md](implementation_guide.md)**: Implementation guidelines
+- **[runtime_extensions.md](runtime_extensions.md)**: Optional runtime extensions (multi-device support)
 
-COIL is currently in early development. This repository contains the formatting header files and documentation for the project.
-There is also the starts of a COIL compiler that will be separated later on
+## Applications
 
-## Documentation
+COIL is designed for:
 
-For detailed information about COIL, please refer to the following documentation:
+- **System Programming**: Operating systems, device drivers, firmware, bootloaders
+- **High-Performance Computing**: Scientific simulations, real-time data processing
+- **Graphics Processing**: Rendering pipelines, video encoding/decoding
+- **AI/ML Workloads**: Training and inference across diverse AI accelerators
+- **Embedded Systems**: Resource-constrained environments with specialized hardware
+- **Heterogeneous Computing**: Applications spanning multiple processing unit types
 
-- [Design Rationale](docs/design.md): Explains the design decisions behind COIL
+## HOIL: Human-Oriented Intermediate Language
 
-## Building
+HOIL (Human-Oriented Intermediate Language) is a planned future extension that will provide a textual representation of COIL for human readability and manual authoring. The current focus remains on COIL as a binary format.
 
-COIL uses the meson build system. To build the project:
+## Implementation Guidelines
 
-```bash
-# Set up the build directory
-meson setup build
+### For Compiler Front-ends
 
-# Compile the project
-meson compile -C build
+When generating COIL from a source language:
 
-# Run tests
-meson test -C build
-```
+1. Map source language types to appropriate COIL types
+2. Choose appropriate execution domains for different code regions
+3. Allocate variables to appropriate memory spaces
+4. Provide rich optimization hints from source analysis
+5. Identify code regions for different processing units
 
-## License
-[License](./LICENSE.md)
+### For Compiler Back-ends
+
+When translating COIL to target architecture:
+
+1. Detect available hardware features
+2. Map COIL operations to optimal hardware instructions
+3. Map COIL memory spaces to hardware memory hierarchy
+4. Efficiently allocate virtual registers to physical registers
+5. Provide software fallbacks for unsupported features
+
+## Getting Started
+
+For compiler developers looking to implement COIL:
+
+1. Start with the [object_format.md](object_format.md) to understand the binary structure
+2. Review [instruction_set.md](instruction_set.md) for the core instruction encodings
+3. Implement the [type_system.md](type_system.md) as the foundation
+4. Add support for the [memory_model.md](memory_model.md)
+5. For multi-device support, integrate the optional [runtime_extensions.md](runtime_extensions.md)

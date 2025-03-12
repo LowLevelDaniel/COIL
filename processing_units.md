@@ -2,7 +2,7 @@
 
 ## 1. Introduction
 
-The COIL Processing Units specification defines the abstract model of computational devices targeted by COIL. This document describes the classification, capabilities, and characteristics of various processing units, providing compiler developers with the information needed to effectively target diverse hardware architectures.
+The COIL Processing Units specification defines the abstract model of computational devices targeted by COIL. This document describes the classification, capabilities, and characteristics of various processing units, providing compiler developers with the information needed to effectively target diverse hardware architectures. Importantly, COIL's core functionality operates on single devices without requiring runtime support, while multi-device targeting is provided as an optional extension for more complex environments.
 
 ## 2. Processing Unit Model
 
@@ -34,6 +34,19 @@ typedef struct {
   uint32_t extensions;       /* Extension support bitfield */
 } coil_processing_unit_t;
 ```
+
+### 2.2 Core vs. Extended Functionality
+
+COIL distinguishes between core functionality and optional extensions:
+
+| Aspect | Core Functionality | Optional Extensions |
+|--------|-------------------|---------------------|
+| Target | Single processing unit | Multiple processing units |
+| Runtime | No runtime system required | Optional runtime for multi-device |
+| Environment | Bare-metal, bootloaders, UEFI | OS-hosted environments |
+| Memory Model | Direct memory access | Optional memory abstraction |
+| Compilation | Ahead-of-time compilation | Additional just-in-time options |
+| Synchronization | Simple synchronization primitives | Advanced multi-device synchronization |
 
 ## 3. Processing Unit Classification
 
@@ -264,44 +277,6 @@ FPGA-specific capabilities:
 | SERDES | Serializer/Deserializer capabilities |
 | TRANSCEIVERS | Transceiver capabilities |
 
-### 6.5 DSP Capabilities
-
-Digital Signal Processor capabilities:
-
-| Feature | Description |
-|---------|-------------|
-| MAC_UNITS | Multiply-Accumulate units |
-| CIRCULAR_BUFFER | Circular buffer support |
-| BIT_REVERSE | Bit reversal support |
-| FFT_ACCELERATION | Fast Fourier Transform acceleration |
-| VITERBI | Viterbi decoder |
-| ZERO_OVERHEAD_LOOP | Zero-overhead loop hardware |
-| SIMD | SIMD vector extensions |
-| SATURATING_MATH | Saturating arithmetic |
-| FIXED_POINT | Fixed-point arithmetic |
-| MULTI_SAMPLE | Multiple sample processing |
-| AUDIO_CODEC | Audio codec acceleration |
-| VIDEO_CODEC | Video codec acceleration |
-
-### 6.6 Quantum Processing Unit Capabilities
-
-QPU-specific capabilities:
-
-| Feature | Description |
-|---------|-------------|
-| QUBIT_COUNT | Number of qubits |
-| COHERENCE_TIME | Qubit coherence time |
-| GATE_FIDELITY | Gate operation fidelity |
-| ENTANGLEMENT | Multi-qubit entanglement capability |
-| QUANTUM_VOLUME | Quantum volume metric |
-| ERROR_CORRECTION | Quantum error correction |
-| GATE_SET | Supported quantum gate set |
-| MEASUREMENT | Measurement capabilities |
-| CONNECTIVITY | Qubit connectivity topology |
-| HYBRID_EXECUTION | Classical/quantum hybrid execution |
-| CIRCUIT_DEPTH | Maximum supported circuit depth |
-| PULSE_CONTROL | Pulse-level control capability |
-
 ## 7. Processing Unit Configuration
 
 ### 7.1 Configuration Parameters
@@ -336,16 +311,17 @@ typedef struct {
 } coil_pu_config_t;
 ```
 
-### 7.2 Configuration Query
+### 7.2 Configuration Query (Core Functionality)
 
-COIL provides mechanisms to query processing unit configurations:
+COIL provides mechanisms to query processing unit configurations at compile time:
 
 ```
-PU_QUERY pu_count, properties
-PU_GET_INFO pu_id, info
-PU_GET_FEATURE pu_id, feature, support
-PU_GET_CAPABILITY pu_id, capability, level
+PU_CONFIG config_option, value   // Static configuration directive
+PU_FEATURE feature, support      // Static feature detection
+PU_CAPABILITY capability, level  // Static capability detection
 ```
+
+These directives are processed during compilation to tailor code generation for the target device.
 
 ## 8. Hardware-Specific Optimization
 
@@ -357,6 +333,8 @@ COIL enables hardware-specific instruction selection:
 TARGET_INSTR architecture, instruction, [operands...]
 ```
 
+This directive selects specific hardware instructions during compilation.
+
 ### 8.2 Specialization Hints
 
 COIL provides hints for architecture-specific specialization:
@@ -366,6 +344,8 @@ HINT_ARCHITECTURE arch, feature
 HINT_OPTIMIZE target, parameter
 HINT_SPECIALIZE function, arch
 ```
+
+These hints guide the compiler in generating optimized code for specific architectures.
 
 ### 8.3 Architecture-Specific Sections
 
@@ -378,6 +358,8 @@ ARCH_ELSE
 ...fallback code...
 ARCH_END
 ```
+
+This allows for architecture-specific implementations with fallbacks for compatibility.
 
 ## 9. Power and Thermal Management
 
@@ -393,16 +375,18 @@ COIL defines power management states:
 | LOW_POWER | Minimum power consumption |
 | THERMAL_LIMIT | Thermal throttling |
 
-### 9.2 Power Management Operations
+### 9.2 Static Power Management Directives
 
-COIL provides power management operations:
+COIL provides static power management directives:
 
 ```
-POWER_SET_STATE pu_id, state
-POWER_GET_STATE pu_id, state_var
-POWER_SET_LIMIT pu_id, limit
-POWER_GET_USAGE pu_id, usage_var
+POWER_PROFILE profile
+POWER_CONSTRAINT constraint, value
+POWER_REGION_BEGIN profile
+POWER_REGION_END
 ```
+
+These directives are processed at compile time to influence code generation for power efficiency.
 
 ## 10. Reliability and Error Handling
 
@@ -412,8 +396,7 @@ COIL supports hardware error detection:
 
 ```
 ERROR_DETECT enable, error_types
-ERROR_CHECK status, [error_info]
-ERROR_CALLBACK callback, error_types
+ERROR_HANDLER handler, error_types
 ```
 
 ### 10.2 Error Recovery
@@ -422,7 +405,7 @@ For error recovery and resilience:
 
 ```
 ERROR_RECOVER strategy
-CHECKPOINT create, state
+CHECKPOINT state
 RESTORE checkpoint
 ```
 
@@ -441,134 +424,140 @@ RESTORE checkpoint
 | THERMAL | Thermal issue |
 | POWER | Power issue |
 
-## 11. Processing Unit Topology
+## 11. Single Device Processing Units (Core Functionality)
 
-### 11.1 Topology Description
+### 11.1 Device Characteristics
 
-COIL provides mechanisms to describe processing unit topology:
-
-```c
-/**
- * @struct coil_topology
- * @brief Processing unit topology description
- */
-typedef struct {
-  uint32_t node_count;        /* Number of processing unit nodes */
-  uint32_t link_count;        /* Number of interconnect links */
-  uint32_t hierarchy_levels;  /* Number of hierarchy levels */
-  uint32_t numa_domains;      /* Number of NUMA domains */
-  uint32_t ccx_count;         /* Number of core complexes */
-  uint32_t features;          /* Topology features */
-} coil_topology_t;
-```
-
-### 11.2 Affinity Control
-
-For controlling execution affinity:
-
-```
-AFFINITY_SET mask
-AFFINITY_GET mask_var
-AFFINITY_SUGGEST task, mask_var
-```
-
-### 11.3 Communication Patterns
-
-COIL defines communication patterns for multi-PU execution:
-
-| Pattern | Description |
-|---------|-------------|
-| POINT_TO_POINT | Direct communication between two PUs |
-| BROADCAST | One-to-many distribution |
-| GATHER | Many-to-one collection |
-| SCATTER | One-to-many distribution of partitioned data |
-| REDUCE | Many-to-one reduction with operation |
-| ALL_REDUCE | Reduction with result broadcast to all PUs |
-| ALL_TO_ALL | Each PU communicates with all others |
-| STENCIL | Nearest-neighbor communication |
-
-## 12. Hardware-Specific Extensions
-
-### 12.1 Extension Mechanism
-
-COIL provides a mechanism for hardware-specific extensions:
+Core functionality for targeting a single processing unit:
 
 ```c
 /**
- * @struct coil_extension
- * @brief Hardware-specific extension
+ * @struct coil_device_characteristics
+ * @brief Characteristics of a single target device
  */
 typedef struct {
-  uint32_t extension_id;      /* Extension identifier */
-  uint32_t vendor_id;         /* Vendor identifier */
-  uint32_t version;           /* Extension version */
-  uint32_t feature_count;     /* Number of features */
-  uint32_t function_count;    /* Number of functions */
-  uint32_t features_offset;   /* Offset to feature table */
-  uint32_t functions_offset;  /* Offset to function table */
-} coil_extension_t;
+  uint32_t architecture;      /* Target architecture */
+  uint32_t features;          /* Available features */
+  uint32_t constraints;       /* Hardware constraints */
+  uint32_t optimizations;     /* Applicable optimizations */
+} coil_device_characteristics_t;
 ```
 
-### 12.2 Vendor-Specific Features
+### 11.2 Direct Hardware Access
 
-For vendor-specific hardware features:
+Core functionality for direct hardware access:
 
 ```
-VENDOR_FEATURE vendor, feature, [parameters...]
-VENDOR_FUNCTION vendor, function, [parameters...]
+HW_REGISTER address, size, access_type
+HW_MEMORY_REGION start, end, attributes
+HW_PORT port, size, access_type
 ```
 
-### 12.3 Common Extensions
+These directives provide direct hardware access for bare-metal programming.
 
-| Extension | Description |
-|-----------|-------------|
-| RTX | Ray tracing extension |
-| TENSOR | Tensor computation extension |
-| CRYPTO | Cryptography extension |
-| COMPRESSION | Data compression extension |
-| NETWORKING | Network acceleration extension |
-| STORAGE | Storage acceleration extension |
-| VIDEO | Video processing extension |
-| AUDIO | Audio processing extension |
-| SENSOR | Sensor processing extension |
-| AI | Artificial intelligence extension |
+### 11.3 Bare-Metal Support
+
+Core functionality for bare-metal environments:
+
+```
+BOOT_ENTRY entry_point
+INTERRUPT_VECTOR vector, handler
+EXCEPTION_HANDLER handler
+MEMORY_MAP region, start, end, attributes
+```
+
+These directives support bare-metal programming without a runtime system.
+
+## 12. Multi-Device Support (Optional Extension)
+
+> **Note**: The following multi-device capabilities are provided as optional extensions and are not required for core COIL functionality. They can be used when targeting heterogeneous computing environments that provide appropriate runtime support.
+
+### 12.1 Device Discovery (Optional)
+
+Optional extension for runtime device discovery:
+
+```c
+/**
+ * @struct coil_device_query
+ * @brief Optional query for available devices
+ * @note Requires runtime support, not available in bare-metal environments
+ */
+typedef struct {
+  uint32_t device_count;     /* Number of devices found */
+  uint32_t device_ids[16];   /* Array of device IDs */
+  uint32_t flags;            /* Query flags */
+} coil_device_query_t;
+```
+
+### 12.2 Device Selection (Optional)
+
+Optional extension for runtime device selection:
+
+```
+DEVICE_SELECT device_id    // Optional runtime device selection
+DEVICE_FALLBACK device_id  // Optional fallback device
+```
+
+These operations require runtime support and are not available in bare-metal environments.
+
+### 12.3 Communication Patterns (Optional)
+
+Optional extension for multi-device communication:
+
+| Pattern | Description | Runtime Required |
+|---------|-------------|------------------|
+| POINT_TO_POINT | Direct communication between two PUs | Yes |
+| BROADCAST | One-to-many distribution | Yes |
+| GATHER | Many-to-one collection | Yes |
+| SCATTER | One-to-many distribution of partitioned data | Yes |
+| REDUCE | Many-to-one reduction with operation | Yes |
+| ALL_REDUCE | Reduction with result broadcast to all PUs | Yes |
+| ALL_TO_ALL | Each PU communicates with all others | Yes |
+| STENCIL | Nearest-neighbor communication | Yes |
 
 ## 13. Implementation Guidelines
 
-### 13.1 Target-Specific Code Generation
+### 13.1 Single Device Implementation (Core)
 
-When generating code for specific processing units:
+When implementing for a single processing unit (core functionality):
 
-1. Query device capabilities to determine feature support
-2. Select appropriate instruction variants based on architecture
-3. Optimize memory access patterns for the target memory hierarchy
-4. Utilize specialized hardware units when available
-5. Consider power and thermal constraints
-6. Provide fallbacks for unsupported features
+1. Focus on direct hardware mapping without abstractions
+2. Generate code specific to the target architecture
+3. Utilize all available hardware features
+4. Optimize for the specific memory hierarchy
+5. Consider bare-metal requirements (no OS dependencies)
+6. Provide fallbacks for unsupported hardware features
+7. Focus on static, compile-time optimizations
+8. Minimize code size and memory usage
+9. Ensure predictable performance
 
-### 13.2 Performance Tuning
+### 13.2 Multi-Device Implementation (Optional)
+
+When implementing optional multi-device support:
+
+1. Create layered implementation with core functionality first
+2. Add optional runtime support for device management
+3. Implement device discovery and selection
+4. Add optional memory transfer capabilities
+5. Provide synchronization mechanisms
+6. Support dynamic load balancing
+7. Implement fallbacks for unavailable devices
+8. Consider heterogeneous architecture differences
+9. Support different device capabilities
+
+### 13.3 Performance Tuning
 
 For optimal performance on specific processing units:
 
 1. Consider SIMD width and vectorization opportunities
 2. Optimize data layout for cache hierarchy
-3. Minimize thread synchronization and divergence
-4. Balance work distribution across heterogeneous units
+3. Minimize memory transfers
+4. Align data for efficient memory access
 5. Utilize architecture-specific optimizations
-6. Consider memory bandwidth limitations
+6. Consider power and thermal constraints
+7. Optimize for the specific execution model
 
-### 13.3 Compatibility Strategies
-
-For maintaining compatibility across diverse processing units:
-
-1. Implement feature detection and fallbacks
-2. Provide multiple implementation variants
-3. Use the most portable subset of features for critical code
-4. Consider emulation for specialized operations
-5. Validate across different architectures
-6. Test edge cases for each target
-
-## 14. Future Trends and Extensibility
+## 14. Future Directions
 
 COIL is designed to accommodate emerging processing unit architectures:
 
@@ -580,3 +569,5 @@ COIL is designed to accommodate emerging processing unit architectures:
 6. **Edge AI**: Specialized low-power AI processors
 7. **Heterogeneous Integration**: Tightly coupled diverse processing units
 8. **Domain-Specific Accelerators**: Highly specialized computing engines
+
+All future extensions will maintain the principle that core functionality works without runtime dependencies, while advanced multi-device features remain optional extensions.

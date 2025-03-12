@@ -2,25 +2,29 @@
 
 ## 1. Introduction
 
-The COIL Execution Model defines how code is executed across diverse processing units. This model is designed to support heterogeneous computing environments while providing deterministic behavior, efficient parallelism, and flexible control flow.
+The COIL Execution Model defines how code is executed across processing units. This model is designed as a two-tier system:
+
+1. **Core Execution Model**: The fundamental execution capabilities that operate without any runtime system, suitable for bare-metal environments like bootloaders, firmware, and UEFI applications.
+
+2. **Optional Runtime Extensions**: Advanced capabilities for heterogeneous computing environments that build upon the core model but require additional runtime support.
+
+This separation ensures COIL can serve both low-level system programming needs and high-performance heterogeneous computing requirements.
 
 ## 2. Execution Domains
 
-COIL defines several execution domains that correspond to different processing unit architectures and programming models.
-
 ### 2.1 Execution Domain Types
 
-| Domain ID | Name | Description | Typical Hardware |
-|-----------|------|-------------|------------------|
-| 0x0 | SEQUENTIAL | Sequential execution | Single-core CPU |
-| 0x1 | THREAD | Multi-threaded execution | Multi-core CPU |
-| 0x2 | SIMD | Single Instruction Multiple Data | Vector units, AVX, NEON |
-| 0x3 | SIMT | Single Instruction Multiple Threads | GPU |
-| 0x4 | DATAFLOW | Data-driven execution | FPGA, TPU, neural accelerators |
-| 0x5 | VECTOR | Vector processing | Vector processors |
-| 0x6 | QUANTUM | Quantum circuit execution | QPU |
-| 0x7 | TASK | Task-based parallelism | Task schedulers |
-| 0x8 | PIPELINE | Pipeline parallelism | DSPs, media processors |
+| Domain ID | Name | Description | Core/Optional | 
+|-----------|------|-------------|--------------|
+| 0x0 | SEQUENTIAL | Sequential execution | Core |
+| 0x1 | THREAD | Multi-threaded execution | Core (basic) / Optional (advanced) |
+| 0x2 | SIMD | Single Instruction Multiple Data | Core |
+| 0x3 | SIMT | Single Instruction Multiple Threads | Optional |
+| 0x4 | DATAFLOW | Data-driven execution | Optional |
+| 0x5 | VECTOR | Vector processing | Core |
+| 0x6 | QUANTUM | Quantum circuit execution | Optional |
+| 0x7 | TASK | Task-based parallelism | Optional |
+| 0x8 | PIPELINE | Pipeline parallelism | Core (basic) / Optional (advanced) |
 
 ### 2.2 Domain Attributes
 
@@ -43,11 +47,11 @@ typedef struct {
 } coil_execution_domain_attrs_t;
 ```
 
-## 3. Execution Units
+## 3. Core Execution Units
 
-### 3.1 Core Execution Unit
+### 3.1 Function Definition (Core)
 
-The core execution unit in COIL is a function, which defines a sequence of instructions to be executed:
+The basic execution unit in COIL is a function, which defines a sequence of instructions to be executed:
 
 ```c
 /**
@@ -71,27 +75,27 @@ typedef struct {
 
 ### 3.2 Function Flags
 
-| Flag | Value | Description |
-|------|-------|-------------|
-| EXTERNAL | 0x0001 | Function is defined externally |
-| INLINE | 0x0002 | Function should be inlined |
-| NOINLINE | 0x0004 | Function should not be inlined |
-| PURE | 0x0008 | Function has no side effects |
-| CONST | 0x0010 | Function always returns same value for same inputs |
-| KERNEL | 0x0020 | Function is a compute kernel |
-| DEVICE | 0x0040 | Function runs on device |
-| HOST | 0x0080 | Function runs on host |
-| EXPORTED | 0x0100 | Function is exported from module |
-| INTERRUPT | 0x0200 | Function is an interrupt handler |
-| NORETURN | 0x0400 | Function does not return |
-| NAKED | 0x0800 | Function has no prologue/epilogue |
-| CRITICAL | 0x1000 | Function is critical section |
+| Flag | Value | Description | Core/Optional |
+|------|-------|-------------|--------------|
+| EXTERNAL | 0x0001 | Function is defined externally | Core |
+| INLINE | 0x0002 | Function should be inlined | Core |
+| NOINLINE | 0x0004 | Function should not be inlined | Core |
+| PURE | 0x0008 | Function has no side effects | Core |
+| CONST | 0x0010 | Function always returns same value for same inputs | Core |
+| KERNEL | 0x0020 | Function is a compute kernel | Optional |
+| DEVICE | 0x0040 | Function runs on device | Optional |
+| HOST | 0x0080 | Function runs on host | Optional |
+| EXPORTED | 0x0100 | Function is exported from module | Core |
+| INTERRUPT | 0x0200 | Function is an interrupt handler | Core |
+| NORETURN | 0x0400 | Function does not return | Core |
+| NAKED | 0x0800 | Function has no prologue/epilogue | Core |
+| CRITICAL | 0x1000 | Function is critical section | Core |
 
-## 4. Control Flow
+## 4. Core Control Flow
 
-### 4.1 Basic Control Flow
+### 4.1 Basic Control Flow (Core)
 
-COIL supports standard control flow operations:
+COIL supports standard control flow operations that work without runtime support:
 
 1. **Unconditional Branch**: Jump to a specified location
 2. **Conditional Branch**: Branch based on a condition
@@ -99,16 +103,16 @@ COIL supports standard control flow operations:
 4. **Function Return**: Return from a function
 5. **Switch**: Multi-way branch based on a value
 
-### 4.2 Structured Control Flow
+### 4.2 Structured Control Flow (Core)
 
 COIL also supports structured control flow constructs:
 
 1. **Loops**: Iteration constructs with defined entry and exit
 2. **Selection**: If-then-else and switch statements
-3. **Exceptions**: Try-catch-finally constructs
-4. **Coroutines**: Functions that can suspend and resume
+3. **Basic Exceptions**: Simple try-catch for error handling
+4. **Handlers**: Interrupt and exception handlers
 
-### 4.3 Control Flow Graph
+### 4.3 Control Flow Graph (Core)
 
 Control flow is represented as a graph with basic blocks as nodes and branches as edges:
 
@@ -129,415 +133,363 @@ typedef struct {
 } coil_basic_block_t;
 ```
 
-## 5. Thread Model
+## 5. Core Thread Model (Single Device)
 
-### 5.1 Thread Hierarchy
+### 5.1 Basic Thread Support (Core)
 
-COIL defines a hierarchical thread model suitable for diverse hardware:
+Core thread capabilities for single-device operation:
 
-1. **Thread**: Individual execution unit
-2. **Warp/Wavefront**: Group of threads executing in lockstep (SIMD/SIMT)
-3. **Block/Workgroup**: Group of threads that can synchronize and share memory
-4. **Grid/NDRange**: Collection of blocks executing the same kernel
+1. **Hardware Threads**: Utilize hardware threading capabilities
+2. **Vector Units**: Leverage SIMD/vector execution units
+3. **Simple Synchronization**: Basic synchronization primitives
+4. **Interrupts**: Hardware interrupt handling
+5. **Exceptions**: Basic exception handling
 
-### 5.2 Thread Identification
+### 5.2 Thread Identification (Core)
 
-Threads are identified by their coordinates in the hierarchy:
+For core functionality, threads are identified simply:
 
 ```c
 /**
- * @struct coil_thread_id
- * @brief Thread identifier in COIL
+ * @struct coil_core_thread_id
+ * @brief Basic thread identifier in COIL core model
  */
 typedef struct {
-  uint32_t global[3];         /* Global thread ID (x,y,z) */
-  uint32_t local[3];          /* Local thread ID within block (x,y,z) */
-  uint32_t block[3];          /* Block ID (x,y,z) */
-  uint32_t warp_id;           /* Warp/wavefront ID */
-  uint32_t lane_id;           /* Lane ID within warp */
-} coil_thread_id_t;
+  uint32_t id;                /* Thread ID */
+  uint32_t hardware_id;       /* Hardware thread ID (if applicable) */
+  uint32_t core_id;           /* Core ID (if applicable) */
+  uint32_t flags;             /* Thread flags */
+} coil_core_thread_id_t;
 ```
 
-### 5.3 Thread Synchronization
+### 5.3 Thread Synchronization (Core)
 
-COIL provides primitives for thread synchronization:
+COIL provides basic primitives for thread synchronization:
 
-1. **Barrier**: Synchronize threads in a block
-2. **Fence**: Memory ordering barrier
-3. **Atomic Operations**: Atomic memory access
-4. **Critical Sections**: Exclusive execution regions
-5. **Mutex/Semaphore**: Traditional synchronization primitives
+1. **Simple Barrier**: Synchronize hardware threads
+2. **Memory Fence**: Basic memory ordering barrier
+3. **Atomic Operations**: Core atomic memory access
+4. **Critical Sections**: Simple exclusive execution regions
+5. **Interrupt Control**: Enable/disable interrupts for synchronization
 
-## 6. Parallel Execution
+## 6. Core Parallel Execution (Single Device)
 
-### 6.1 Data Parallelism
+### 6.1 SIMD/Vector Execution (Core)
 
-COIL supports data-parallel execution across multiple processing units:
+COIL supports SIMD/vector execution on a single device:
 
 ```
-DISPATCH kernel, dimensions, global_size, local_size, [args...]
+SIMD_EXECUTE function, width, data
 ```
 
 Where:
-- `kernel`: The kernel function to execute
-- `dimensions`: Number of dimensions (1-3)
-- `global_size`: Total work items
-- `local_size`: Work items per work group
-- `args`: Kernel arguments
+- `function`: The function to execute
+- `width`: Vector width (number of lanes)
+- `data`: Vector data
 
-### 6.2 Task Parallelism
+### 6.2 Hardware Threading (Core)
 
-COIL supports task-parallel execution:
+COIL supports hardware threading when available:
 
 ```
-SPAWN task, [args...]
-TASK_WAIT [task]
+THREAD_EXECUTE function, core, [args...]
 ```
 
-### 6.3 Pipeline Parallelism
+Where:
+- `function`: The function to execute
+- `core`: Target core (if applicable)
+- `args`: Function arguments
 
-COIL supports pipeline parallelism for stream processing:
+## 7. Core Execution Context
 
-```
-PIPELINE_STAGE stage, function, [next_stage]
-PIPELINE_PUSH pipeline, data
-PIPELINE_POP pipeline, result
-```
+### 7.1 Context Definition (Core)
 
-### 6.4 Vector Parallelism
-
-For SIMD-style operations:
-
-```
-FOR_SIMD i, start, end, step, body
-```
-
-## 7. Execution Context
-
-### 7.1 Context Definition
-
-The execution context contains the state necessary for execution:
+The core execution context contains the minimum state necessary for execution:
 
 ```c
 /**
- * @struct coil_execution_context
- * @brief Execution context in COIL
+ * @struct coil_core_execution_context
+ * @brief Core execution context in COIL
  */
 typedef struct {
-  uint32_t domain;            /* Execution domain */
   uint32_t function_id;       /* Current function */
   uint32_t pc;                /* Program counter */
   uint32_t stack_ptr;         /* Stack pointer */
   uint32_t frame_ptr;         /* Frame pointer */
-  uint32_t thread_id_ptr;     /* Pointer to thread ID structure */
-  uint32_t memory_base_ptr;   /* Base pointer for memory addressing */
   uint32_t flags;             /* Context flags */
-} coil_execution_context_t;
+} coil_core_execution_context_t;
 ```
 
-### 7.2 Context Switching
+### 7.2 Execution Stack (Core)
 
-COIL supports context switching for cooperative multitasking:
-
-```
-CONTEXT_SAVE ctx
-CONTEXT_LOAD ctx
-CONTEXT_SWITCH old_ctx, new_ctx
-```
-
-### 7.3 Execution Stack
-
-The execution stack contains:
+The core execution stack contains:
 1. Return addresses
 2. Local variables
 3. Saved registers
 4. Function parameters
-5. Context information
+5. Essential context information
 
-## 8. Heterogeneous Execution
+## 8. Optional Heterogeneous Execution Extensions
 
-### 8.1 Device Management
+> **Note**: The following capabilities are provided as optional extensions and require runtime support. They are not available in bare-metal environments without additional infrastructure.
 
-COIL provides primitives for managing multiple processing units:
+### 8.1 Device Management (Optional)
 
-```
-DEVICE_QUERY devices, properties
-DEVICE_SELECT device, criteria
-DEVICE_ALLOCATE device, memory, size
-DEVICE_FREE device, memory
-DEVICE_COPY dst_device, dst_addr, src_device, src_addr, size
-```
-
-### 8.2 Kernel Dispatch
-
-For executing code on specific devices:
+Optional extensions for managing multiple processing units:
 
 ```
-DEVICE_DISPATCH device, kernel, dimensions, global_size, local_size, [args...]
+DEVICE_QUERY devices, properties       // Optional: Requires runtime
+DEVICE_SELECT device, criteria         // Optional: Requires runtime
+DEVICE_ALLOCATE device, memory, size   // Optional: Requires runtime
+DEVICE_FREE device, memory             // Optional: Requires runtime
+DEVICE_COPY dst, src, size             // Optional: Requires runtime
 ```
 
-### 8.3 Device Synchronization
+### 8.2 Kernel Dispatch (Optional)
 
-For synchronizing operations across devices:
-
-```
-DEVICE_SYNC device, [event]
-DEVICE_BARRIER devices, [event]
-```
-
-## 9. Asynchronous Execution
-
-### 9.1 Events and Completion Signals
-
-COIL supports event-based synchronization:
+Optional extensions for executing code on specific devices:
 
 ```
-EVENT_CREATE event
-EVENT_DESTROY event
-EVENT_SIGNAL event
-EVENT_WAIT event, [timeout]
-EVENT_STATUS status, event
+DEVICE_DISPATCH device, kernel, dimensions, global_size, local_size, [args...]  // Optional: Requires runtime
 ```
 
-### 9.2 Asynchronous Operations
+### 8.3 Device Synchronization (Optional)
 
-For non-blocking operations:
-
-```
-ASYNC_BEGIN operation
-ASYNC_END [event]
-AWAIT event
-```
-
-### 9.3 Futures and Promises
-
-For asynchronous result handling:
+Optional extensions for synchronizing operations across devices:
 
 ```
-FUTURE_CREATE future, type
-PROMISE_CREATE promise, future
-PROMISE_FULFILL promise, value
-FUTURE_GET value, future, [timeout]
+DEVICE_SYNC device, [event]           // Optional: Requires runtime
+DEVICE_BARRIER devices, [event]       // Optional: Requires runtime
 ```
 
-## 10. Exception Handling
+## 9. Optional Asynchronous Execution Extensions
 
-### 10.1 Exception Model
+> **Note**: These asynchronous execution features require runtime support and are provided as optional extensions.
 
-COIL provides a structured exception handling model:
+### 9.1 Events and Completion Signals (Optional)
+
+Optional event-based synchronization:
 
 ```
-TRY label
-CATCH type, handler
-FINALLY cleanup
-THROW exception
+EVENT_CREATE event              // Optional: Requires runtime
+EVENT_DESTROY event             // Optional: Requires runtime
+EVENT_SIGNAL event              // Optional: Requires runtime
+EVENT_WAIT event, [timeout]     // Optional: Requires runtime
+EVENT_STATUS status, event      // Optional: Requires runtime
 ```
 
-### 10.2 Exception Types
+### 9.2 Asynchronous Operations (Optional)
 
-| Exception ID | Name | Description |
-|--------------|------|-------------|
-| 0x00 | GENERAL | General exception |
-| 0x01 | ARITHMETIC | Arithmetic error (divide by zero, overflow) |
-| 0x02 | MEMORY | Memory access violation |
-| 0x03 | ALIGNMENT | Alignment error |
-| 0x04 | STACK | Stack overflow/underflow |
-| 0x05 | TYPE | Type error |
-| 0x06 | RANGE | Out of range error |
-| 0x07 | NULL | Null pointer dereference |
-| 0x08 | DOMAIN | Domain error (math functions) |
-| 0x09 | IO | Input/output error |
-| 0x0A | HARDWARE | Hardware-specific error |
+Optional non-blocking operations:
 
-### 10.3 Exception Propagation
+```
+ASYNC_BEGIN operation           // Optional: Requires runtime
+ASYNC_END [event]               // Optional: Requires runtime
+AWAIT event                     // Optional: Requires runtime
+```
 
-Exceptions propagate up the call stack until caught or until the program terminates.
+### 9.3 Futures and Promises (Optional)
 
-## 11. Execution Models for Specific Domains
+Optional asynchronous result handling:
 
-### 11.1 SIMD Execution Model
+```
+FUTURE_CREATE future, type      // Optional: Requires runtime
+PROMISE_CREATE promise, future  // Optional: Requires runtime
+PROMISE_FULFILL promise, value  // Optional: Requires runtime
+FUTURE_GET value, future        // Optional: Requires runtime
+```
+
+## 10. Advanced Exception Handling (Optional)
+
+> **Note**: Advanced exception handling features are provided as optional extensions and may require runtime support.
+
+### 10.1 Extended Exception Model (Optional)
+
+Optional extended exception handling:
+
+```
+TRY_BEGIN label                // Optional 
+CATCH type, handler            // Optional
+FINALLY cleanup                // Optional
+THROW exception                // Optional
+TRY_END                        // Optional
+```
+
+### 10.2 Exception Types (Core + Optional)
+
+| Exception ID | Name | Description | Core/Optional |
+|--------------|------|-------------|--------------|
+| 0x00 | GENERAL | General exception | Core |
+| 0x01 | ARITHMETIC | Arithmetic error (divide by zero, overflow) | Core |
+| 0x02 | MEMORY | Memory access violation | Core |
+| 0x03 | ALIGNMENT | Alignment error | Core |
+| 0x04 | STACK | Stack overflow/underflow | Core |
+| 0x05 | TYPE | Type error | Core |
+| 0x06 | RANGE | Out of range error | Core |
+| 0x07 | NULL | Null pointer dereference | Core |
+| 0x08 | DOMAIN | Domain error (math functions) | Core |
+| 0x09 | IO | Input/output error | Core |
+| 0x0A | HARDWARE | Hardware-specific error | Core |
+| 0x10-0xFF | ADVANCED | Advanced exception types | Optional |
+
+## 11. Core Execution Models for Specific Domains
+
+### 11.1 SIMD Execution Model (Core)
 
 For SIMD execution domains:
 
-1. Operations apply to entire vectors
-2. Masking controls which elements are affected
-3. Predication enables conditional execution
+1. **Vector Operations**: Operations apply to entire vectors
+2. **Masking**: Conditional execution via masks
+3. **Lane Predication**: Per-lane execution control
 
-### 11.2 SIMT Execution Model
+### 11.2 SIMT Execution Model (Optional)
 
 For SIMT execution domains (e.g., GPUs):
 
-1. Threads within a warp execute in lockstep
-2. Divergent branches cause serialization
-3. Convergence points resynchronize execution
+1. **Warp Execution**: Threads within a warp execute in lockstep
+2. **Branch Divergence**: Handling of divergent branches
+3. **Reconvergence**: Thread reconvergence at join points
 
-### 11.3 Dataflow Execution Model
+### 11.3 Dataflow Execution Model (Optional)
 
 For dataflow execution domains (e.g., FPGAs, TPUs):
 
-1. Operations execute when inputs are available
-2. Data dependencies determine execution order
-3. No explicit program counter
+1. **Data-Driven**: Operations execute when inputs are available
+2. **Dependency Graph**: Execution follows data dependencies
+3. **Pipelined**: Operations execute in pipelined fashion
 
-### 11.4 Quantum Execution Model
+## 12. Core Work Distribution (Single Device)
 
-For quantum execution domains (QPUs):
+### 12.1 Work Distribution Patterns (Core)
 
-1. Operations are represented as quantum gates
-2. Circuits define sequences of operations
-3. Measurement collapses quantum state
-
-## 12. Work Distribution and Scheduling
-
-### 12.1 Work Distribution Patterns
-
-COIL supports different patterns for distributing work:
+COIL supports basic patterns for distributing work on a single device:
 
 1. **Block Distribution**: Contiguous chunks to each unit
 2. **Cyclic Distribution**: Round-robin assignment
 3. **Block-Cyclic Distribution**: Blocks assigned in round-robin fashion
-4. **Adaptive Distribution**: Runtime load balancing
 
-### 12.2 Work Scheduling
+### 12.2 Static Scheduling (Core)
 
-COIL provides different scheduling strategies:
+COIL provides static scheduling strategies:
 
-1. **Static Scheduling**: Fixed assignment at compile time
-2. **Dynamic Scheduling**: Runtime assignment based on availability
-3. **Guided Scheduling**: Decreasing chunk sizes for better load balancing
+1. **Compile-Time Scheduling**: Fixed assignment at compile time
+2. **Static Partitioning**: Predetermined work distribution
+3. **Balanced Distribution**: Equal work assignment
 
-### 12.3 Work Stealing
+## 13. Optional Advanced Scheduling Extensions
 
-For dynamic load balancing:
+> **Note**: Advanced scheduling features are provided as optional extensions and require runtime support.
+
+### 13.1 Dynamic Scheduling (Optional)
+
+Optional dynamic scheduling support:
 
 ```
-WORK_QUEUE_CREATE queue, item_size
-WORK_ENQUEUE queue, item
-WORK_DEQUEUE item, queue
-WORK_STEAL item, queue
+DYNAMIC_SCHEDULE work, workers, strategy     // Optional: Requires runtime
 ```
 
-## 13. Execution Annotations
+### 13.2 Work Stealing (Optional)
 
-### 13.1 Performance Annotations
+Optional dynamic load balancing:
 
-COIL supports annotations for performance optimization:
+```
+WORK_QUEUE_CREATE queue, item_size          // Optional: Requires runtime
+WORK_ENQUEUE queue, item                    // Optional: Requires runtime
+WORK_DEQUEUE item, queue                    // Optional: Requires runtime
+WORK_STEAL item, queue                      // Optional: Requires runtime
+```
+
+## 14. Core Execution Annotations
+
+### 14.1 Performance Annotations (Core)
+
+Static annotations for performance optimization:
 
 ```
 HINT_HOT block           /* Frequently executed code */
 HINT_COLD block          /* Rarely executed code */
 HINT_UNROLL loop, factor /* Loop unrolling hint */
 HINT_VECTORIZE loop      /* Vectorization hint */
-HINT_PARALLEL loop       /* Parallelization hint */
+HINT_INLINE function     /* Function inlining hint */
 ```
 
-### 13.2 Hardware-Specific Annotations
+### 14.2 Hardware-Specific Annotations (Core)
 
-For targeting specific hardware features:
+Static annotations for targeting specific hardware features:
 
 ```
-HINT_DEVICE type         /* Target specific device type */
 HINT_FEATURE feature     /* Require specific hardware feature */
 HINT_FALLBACK function   /* Fallback implementation */
-```
-
-### 13.3 Memory Behavior Annotations
-
-For memory access optimization:
-
-```
-HINT_MEMORY_ACCESS addr, pattern /* Memory access pattern */
-HINT_MEMORY_ALIAS a, b, relation /* Memory aliasing information */
-HINT_MEMORY_ALIGN addr, alignment /* Memory alignment */
-```
-
-## 14. Execution Profiling and Monitoring
-
-### 14.1 Performance Counters
-
-COIL supports performance monitoring:
-
-```
-COUNTER_CREATE counter, type
-COUNTER_START counter
-COUNTER_STOP counter
-COUNTER_RESET counter
-COUNTER_READ value, counter
-```
-
-### 14.2 Execution Trace
-
-For detailed execution analysis:
-
-```
-TRACE_BEGIN trace, events
-TRACE_END trace
-TRACE_EVENT trace, event_type, data
-```
-
-### 14.3 Execution Debugging
-
-For debugging support:
-
-```
-BREAKPOINT
-WATCHPOINT addr, size, condition
-SINGLE_STEP
+HINT_ALIGN address, alignment /* Memory alignment hint */
 ```
 
 ## 15. Implementation Guidelines
 
-### 15.1 Execution Environment Mapping
+### 15.1 Core Execution Model Implementation
 
-When implementing the COIL execution model for a specific target:
+Guidelines for implementing the core execution model:
 
-1. Map COIL execution domains to hardware execution units
-2. Implement appropriate synchronization primitives
-3. Handle thread hierarchy appropriately
-4. Support control flow constructs
-5. Provide proper exception handling
+1. **No Runtime Dependencies**: Core functionality must work without runtime system
+2. **Direct Hardware Mapping**: Map execution directly to hardware capabilities
+3. **Static Compilation**: All decisions made at compile/link time
+4. **Minimal Abstraction**: Provide direct access to hardware features
+5. **Bare-Metal Support**: Support execution in environments with no OS
+6. **Position Independence**: Support relocatable code execution
+7. **Safety Mechanisms**: Include basic safety checks for robust execution
+8. **Predictability**: Ensure deterministic execution behavior
+9. **Resource Awareness**: Be conscious of limited resources in embedded environments
+10. **Fallback Mechanisms**: Provide fallbacks for unsupported features
 
-### 15.2 Heterogeneous Execution Strategy
+### 15.2 Optional Extensions Implementation
 
-For heterogeneous computing environments:
+Guidelines for implementing optional extensions:
 
-1. Determine optimal device for each kernel
-2. Manage data transfers efficiently
-3. Balance load across processing units
-4. Synchronize execution across devices
-5. Handle device-specific optimizations
+1. **Clear Separation**: Clearly separate core functionality from extensions
+2. **Runtime Detection**: Detect availability of runtime support
+3. **Graceful Degradation**: Fall back to core functionality when extensions unavailable
+4. **Layered Architecture**: Build extensions on top of core functionality
+5. **Optional Integration**: Allow selective use of extensions
+6. **Performance Awareness**: Minimize overhead of runtime support
+7. **Feature Detection**: Detect available extension features at runtime
+8. **Versioning**: Support versioning of extensions
+9. **Platform Adaptation**: Adapt to different host environments
+10. **Documentation**: Clearly document extension dependencies
 
-### 15.3 Performance Considerations
+### 15.3 Bare-Metal Execution Considerations
 
-For optimal performance:
+Special considerations for bare-metal execution:
 
-1. Minimize thread divergence
-2. Maximize memory coalescing
-3. Optimize work distribution
-4. Leverage hardware-specific features
-5. Reduce synchronization overhead
+1. **No Heap Requirement**: Avoid dynamic memory allocation
+2. **Static Allocation**: Use compile-time memory allocation
+3. **Direct Hardware Access**: Allow direct register and memory access
+4. **Interrupt Integration**: Support hardware interrupt mechanisms
+5. **System Initialization**: Support early system initialization
+6. **Memory Map Awareness**: Honor system memory map constraints
+7. **Stack Management**: Careful stack usage tracking
+8. **Power Management**: Support power state control
+9. **Boot Process**: Support various boot processes
+10. **Firmware Integration**: Enable seamless firmware integration
 
-## 16. Cross-Platform Execution
+## 16. Cross-Platform Execution (Core)
 
-### 16.1 Platform Abstraction
+### 16.1 Platform Abstraction (Core)
 
-COIL provides a platform abstraction layer:
+COIL provides minimal platform abstraction:
 
 ```c
 /**
- * @struct coil_platform
- * @brief Platform abstraction in COIL
+ * @struct coil_platform_info
+ * @brief Platform information for core functionality
  */
 typedef struct {
   uint32_t platform_id;       /* Platform identifier */
   uint32_t vendor_id;         /* Vendor identifier */
   uint32_t version;           /* Platform version */
-  uint32_t device_count;      /* Number of devices */
   uint32_t features;          /* Platform features */
-} coil_platform_t;
+} coil_platform_info_t;
 ```
 
-### 16.2 Target-Specific Code Paths
+### 16.2 Target-Specific Code Paths (Core)
 
 For handling platform-specific optimizations:
 
@@ -547,19 +499,35 @@ TARGET_FALLBACK fallback_platform
 TARGET_END
 ```
 
-### 16.3 Compatibility Layer
+This allows for platform-specific implementations with fallbacks.
+
+### 16.3 Compatibility Layer (Core)
 
 For ensuring cross-platform compatibility:
 
-1. Feature detection
-2. Fallback implementations
-3. Emulation of missing features
-4. Portable memory model
-5. Consistent thread model
+1. **Feature Detection**: Detect available hardware features
+2. **Fallback Implementations**: Provide fallbacks for missing features
+3. **Abstraction Layer**: Thin abstraction for platform differences
+4. **Compatibility Macros**: Define compatibility macros
+5. **Portable Types**: Use portable type definitions
 
-## 17. Future Extensions
+## 17. Future Directions
 
 Areas for future development in the COIL execution model:
+
+### 17.1 Core Model Enhancements
+
+Future enhancements to core functionality:
+
+1. **Static Analysis Integration**: Better integration with static analysis tools
+2. **Safety Verification**: Enhanced safety verification
+3. **Certification Support**: Features for safety certification
+4. **Formal Verification**: Support for formal verification
+5. **Timing Analysis**: Enhanced timing analysis and predictability
+
+### 17.2 Optional Extensions
+
+Potential future optional extensions:
 
 1. **Fault Tolerance**: Resilient execution across unreliable hardware
 2. **Energy-Aware Execution**: Optimizing for energy efficiency

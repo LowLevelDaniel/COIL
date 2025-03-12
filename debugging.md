@@ -2,18 +2,28 @@
 
 ## 1. Introduction
 
-The COIL Debugging Support specification defines the mechanisms for debugging COIL code across diverse processing units. This document describes debugging information formats, debugging operations, and tools integration to facilitate effective development.
+The COIL Debugging Support specification defines the mechanisms for debugging COIL code with an emphasis on static debugging approaches. This document focuses on debugging techniques that work without runtime support, making them suitable for bare-metal environments like bootloaders and UEFI applications, while still providing optional extensions for more complex environments.
 
-## 2. Debugging Information Format
+## 2. Static Debugging Fundamentals
 
-### 2.1 Debug Information Section
+### 2.1 Static Debugging Approach
 
-COIL object files include a dedicated section for debugging information:
+COIL's primary debugging philosophy emphasizes compile-time and link-time techniques that require no runtime overhead:
+
+1. **Static Analysis**: Identify potential issues at compile time
+2. **Compile-Time Validation**: Verify code correctness during compilation
+3. **Debug Information Generation**: Produce rich debug information for post-mortem analysis
+4. **Static Resource Verification**: Validate resource usage statically
+5. **Deterministic Execution**: Ensure predictable behavior for debugging
+
+### 2.2 Debug Information Format
+
+COIL generates debugging information during compilation:
 
 ```c
 /**
  * @struct coil_debug_section_header
- * @brief Header for debug information section
+ * @brief Header for statically-generated debug information section
  */
 typedef struct {
   uint32_t version;          /* Debug format version */
@@ -27,14 +37,64 @@ typedef struct {
 } coil_debug_section_header_t;
 ```
 
-### 2.2 Source Location Mapping
+This debug information is generated at compile time and can be:
+1. Embedded in the final binary (for integrated debugging)
+2. Stored in separate files (for reduced binary size)
+3. Used by external tools for analysis and debugging
 
-Source location mapping associates COIL instructions with source code locations:
+## 3. Static Analysis Techniques
+
+### 3.1 Compile-Time Validation
+
+Static validation performed during compilation:
+
+| Validation | Description | Benefit for Bare-Metal |
+|------------|-------------|------------------------|
+| TYPE_CHECKING | Comprehensive type validation | Prevent type-related errors |
+| FLOW_ANALYSIS | Control flow correctness | Ensure all paths are valid |
+| NULL_ANALYSIS | Null pointer detection | Prevent null dereference crashes |
+| BOUND_CHECKING | Array bounds verification | Prevent buffer overflows |
+| RESOURCE_ANALYSIS | Resource usage verification | Prevent resource exhaustion |
+| INITIALIZATION | Uninitialized variable detection | Ensure deterministic behavior |
+| UNREACHABLE_CODE | Dead code detection | Identify logical errors |
+| MEMORY_SAFETY | Memory access validation | Prevent memory corruption |
+
+### 3.2 Static Debugging Annotations
+
+Annotations to assist static debugging:
+
+```
+DEBUG_ASSERT condition, message
+DEBUG_UNREACHABLE message
+DEBUG_CHECK condition, message
+DEBUG_BOUNDS_CHECK array, index
+DEBUG_NULL_CHECK pointer
+DEBUG_RESOURCE_CHECK resource, limit
+```
+
+These annotations are processed at compile time to validate code correctness.
+
+### 3.3 Compile-Time Diagnostics
+
+Diagnostic information generated during compilation:
+
+1. **Error Messages**: Clear, actionable error messages
+2. **Warning System**: Configurable warning levels
+3. **Suggestion Engine**: Recommendations for fixing issues
+4. **Code Quality Metrics**: Static quality assessment
+5. **Complexity Analysis**: Identify overly complex code
+6. **Pattern Recognition**: Detect problematic patterns
+
+## 4. Debug Information Generation
+
+### 4.1 Source Location Mapping
+
+Static mapping between source code and generated code:
 
 ```c
 /**
  * @struct coil_source_location
- * @brief Source code location
+ * @brief Source code location mapping generated at compile time
  */
 typedef struct {
   uint32_t file_index;      /* Source file index */
@@ -44,14 +104,14 @@ typedef struct {
 } coil_source_location_t;
 ```
 
-### 2.3 Variable Mapping
+### 4.2 Variable Information
 
-Variable mapping provides information about variables in the source code:
+Debug information for variables:
 
 ```c
 /**
  * @struct coil_debug_variable
- * @brief Debug information for a variable
+ * @brief Statically generated debug information for a variable
  */
 typedef struct {
   uint32_t name_offset;     /* Offset to variable name */
@@ -64,14 +124,14 @@ typedef struct {
 } coil_debug_variable_t;
 ```
 
-### 2.4 Type Information
+### 4.3 Type Information
 
 Rich type information for debugging:
 
 ```c
 /**
  * @struct coil_debug_type
- * @brief Debug information for a type
+ * @brief Statically generated debug information for a type
  */
 typedef struct {
   uint32_t name_offset;     /* Offset to type name */
@@ -85,467 +145,185 @@ typedef struct {
 } coil_debug_type_t;
 ```
 
-## 3. Debugging Operations
+## 5. Static Call Stack Analysis
 
-### 3.1 Breakpoints
+### 5.1 Call Graph Generation
 
-COIL provides support for breakpoints:
-
-```
-BREAKPOINT [id], [condition]
-```
-
-Breakpoint types:
-1. **Code Breakpoint**: Stop at a specific instruction
-2. **Data Breakpoint**: Stop on memory access
-3. **Conditional Breakpoint**: Stop when condition is true
-4. **Hardware Breakpoint**: Use hardware breakpoint registers
-5. **Software Breakpoint**: Use instruction replacement
-
-### 3.2 Watchpoints
-
-For monitoring memory locations:
-
-```
-WATCHPOINT addr, size, [access_type], [condition]
-```
-
-Where `access_type` can be:
-- READ: Break on read access
-- WRITE: Break on write access
-- READWRITE: Break on any access
-
-### 3.3 Single Stepping
-
-For instruction-by-instruction execution:
-
-```
-SINGLE_STEP [mode]
-```
-
-Where `mode` can be:
-- INSTRUCTION: Step one instruction
-- SOURCE_LINE: Step one source line
-- OVER: Step over function calls
-- INTO: Step into function calls
-- OUT: Step out of current function
-
-### 3.4 Variable Inspection
-
-For examining variable values:
-
-```
-INSPECT variable, [format]
-MEMORY_DUMP addr, size, [format]
-```
-
-### 3.5 Call Stack Manipulation
-
-For examining and manipulating the call stack:
-
-```
-BACKTRACE [depth]
-FRAME_SELECT frame_index
-FRAME_LOCALS frame_index
-FRAME_ARGS frame_index
-```
-
-## 4. Debug Sections
-
-### 4.1 Line Number Information
-
-Line number tables map between source code and binary instructions:
+Static call graph analysis:
 
 ```c
 /**
- * @struct coil_line_table_header
- * @brief Header for line number table
+ * @struct coil_call_graph_node
+ * @brief Node in the statically generated call graph
  */
 typedef struct {
-  uint32_t file_index;      /* Source file index */
-  uint32_t entry_count;     /* Number of entries */
-  uint32_t address_size;    /* Size of addresses (4 or 8 bytes) */
-  uint32_t flags;           /* Table flags */
-} coil_line_table_header_t;
+  uint32_t function_index;  /* Function identifier */
+  uint32_t caller_count;    /* Number of callers */
+  uint32_t callee_count;    /* Number of callees */
+  uint32_t callers_offset;  /* Offset to caller list */
+  uint32_t callees_offset;  /* Offset to callee list */
+  uint32_t flags;           /* Call site flags */
+} coil_call_graph_node_t;
 ```
 
-Each entry maps a range of code to a source location.
+### 5.2 Stack Usage Analysis
 
-### 4.2 Source File Information
-
-Information about source files used in compilation:
+Static stack usage analysis:
 
 ```c
 /**
- * @struct coil_source_file
- * @brief Source file information
+ * @struct coil_stack_usage
+ * @brief Stack usage analysis results
  */
 typedef struct {
-  uint32_t name_offset;     /* Offset to file name */
-  uint32_t path_offset;     /* Offset to full path */
-  uint32_t content_hash;    /* Content hash for version check */
-  uint32_t timestamp;       /* File timestamp */
-  uint32_t line_count;      /* Number of lines */
-  uint32_t flags;           /* File flags */
-} coil_source_file_t;
+  uint32_t function_index;  /* Function identifier */
+  uint32_t local_usage;     /* Local stack usage in bytes */
+  uint32_t max_caller_usage; /* Maximum stack usage of any call site */
+  uint32_t total_usage;     /* Total stack usage with call chain */
+  uint32_t call_chain_offset; /* Offset to worst-case call chain */
+  uint32_t flags;           /* Stack usage flags */
+} coil_stack_usage_t;
 ```
 
-### 4.3 Symbolic Information
+### 5.3 Interrupt Analysis
 
-Symbolic information for debugging:
+Static interrupt handling analysis:
 
 ```c
 /**
- * @struct coil_debug_symbol
- * @brief Debug symbol information
+ * @struct coil_interrupt_analysis
+ * @brief Interrupt handler analysis information
  */
 typedef struct {
-  uint32_t name_offset;     /* Offset to symbol name */
-  uint32_t address;         /* Symbol address */
-  uint32_t size;            /* Symbol size */
-  uint32_t type;            /* Symbol type */
-  uint32_t binding;         /* Symbol binding */
-  uint32_t section;         /* Symbol section */
-  uint32_t flags;           /* Symbol flags */
-} coil_debug_symbol_t;
+  uint32_t vector;          /* Interrupt vector number */
+  uint32_t handler_index;   /* Handler function index */
+  uint32_t stack_usage;     /* Stack usage including context save */
+  uint32_t max_latency;     /* Maximum latency in cycles */
+  uint32_t state_save_size; /* Size of state saved on entry */
+  uint32_t accessed_hardware; /* Hardware accessed by handler */
+  uint32_t flags;           /* Interrupt handler flags */
+} coil_interrupt_analysis_t;
 ```
 
-### 4.4 Scope Information
+## 6. Static Resource Analysis
 
-Information about lexical scopes:
+### 6.1 Memory Usage Analysis
+
+Static memory usage analysis:
 
 ```c
 /**
- * @struct coil_debug_scope
- * @brief Debug scope information
+ * @struct coil_memory_usage
+ * @brief Statically determined memory usage
  */
 typedef struct {
-  uint32_t type;            /* Scope type (global, function, block, etc.) */
-  uint32_t name_offset;     /* Offset to scope name (if any) */
-  uint32_t start_offset;    /* Start code offset */
-  uint32_t end_offset;      /* End code offset */
-  uint32_t parent_scope;    /* Parent scope index */
-  uint32_t sibling_scope;   /* Next sibling scope index */
-  uint32_t child_scope;     /* First child scope index */
-  uint32_t variable_count;  /* Number of variables in scope */
-  uint32_t variables_offset; /* Offset to variable indices */
-} coil_debug_scope_t;
+  uint32_t text_size;       /* Code section size */
+  uint32_t data_size;       /* Initialized data size */
+  uint32_t bss_size;        /* Uninitialized data size */
+  uint32_t rodata_size;     /* Read-only data size */
+  uint32_t stack_size;      /* Maximum stack size */
+  uint32_t section_count;   /* Number of sections */
+  uint32_t sections_offset; /* Offset to section details */
+} coil_memory_usage_t;
 ```
 
-## 5. Debugging Communication Protocol
+### 6.2 Register Allocation Analysis
 
-### 5.1 Debug Server Interface
-
-COIL defines a standard protocol for debugger-target communication:
+Static register usage analysis:
 
 ```c
 /**
- * @struct coil_debug_message
- * @brief Debug protocol message
+ * @struct coil_register_usage
+ * @brief Register allocation analysis
  */
 typedef struct {
-  uint32_t message_id;      /* Message identifier */
-  uint32_t sequence;        /* Sequence number */
-  uint32_t type;            /* Message type */
-  uint32_t length;          /* Payload length */
-  uint8_t  payload[];       /* Message payload */
-} coil_debug_message_t;
+  uint32_t function_index;  /* Function identifier */
+  uint32_t gp_reg_mask;     /* General purpose registers used */
+  uint32_t fp_reg_mask;     /* Floating-point registers used */
+  uint32_t special_reg_mask; /* Special registers used */
+  uint32_t max_live_regs;   /* Maximum live registers at any point */
+  uint32_t spill_count;     /* Number of register spills */
+  uint32_t flags;           /* Register usage flags */
+} coil_register_usage_t;
 ```
 
-### 5.2 Message Types
+### 6.3 Hardware Resource Analysis
 
-| Message Type | Direction | Description |
-|--------------|-----------|-------------|
-| CONNECT | Client→Server | Initialize debugging session |
-| DISCONNECT | Client→Server | Terminate debugging session |
-| SET_BREAKPOINT | Client→Server | Set a breakpoint |
-| CLEAR_BREAKPOINT | Client→Server | Clear a breakpoint |
-| STEP | Client→Server | Single-step execution |
-| CONTINUE | Client→Server | Continue execution |
-| PAUSE | Client→Server | Pause execution |
-| READ_MEMORY | Client→Server | Read memory content |
-| WRITE_MEMORY | Client→Server | Write memory content |
-| READ_REGISTER | Client→Server | Read register value |
-| WRITE_REGISTER | Client→Server | Write register value |
-| EVAL_EXPRESSION | Client→Server | Evaluate expression |
-| BREAKPOINT_HIT | Server→Client | Breakpoint hit notification |
-| STEP_COMPLETE | Server→Client | Step completed notification |
-| ERROR | Server→Client | Error notification |
-| EXCEPTION | Server→Client | Exception notification |
-| STATE_CHANGE | Server→Client | Execution state change notification |
-
-### 5.3 Execution State
-
-COIL defines execution states for debugging:
-
-| State | Description |
-|-------|-------------|
-| RUNNING | Program is executing |
-| PAUSED | Execution is paused |
-| TERMINATED | Execution has terminated |
-| ERROR | Execution encountered an error |
-| STARTING | Execution is starting |
-| STEPPING | Executing a single step |
-
-## 6. Heterogeneous Debugging
-
-### 6.1 Multi-Device Debugging
-
-COIL supports debugging across multiple processing units:
-
-```
-DEVICE_SELECT device_id
-DEVICE_STATE device_id, state_var
-DEVICE_BREAKPOINT device_id, address, [condition]
-DEVICE_CONTINUE device_id
-```
-
-### 6.2 Device Synchronization
-
-For synchronizing debugging across devices:
-
-```
-SYNC_POINT devices, [condition]
-SYNC_CONTINUE devices
-SYNC_STEP devices, mode
-```
-
-### 6.3 Domain-Specific Views
-
-COIL supports domain-specific debugging views:
-
-1. **SIMD View**: Visualize SIMD register state
-2. **Thread View**: View multiple threads/lanes
-3. **Memory View**: Visualize memory hierarchies
-4. **Pipeline View**: Visualize processor pipeline state
-5. **Kernel View**: Debug compute kernels
-6. **Dataflow View**: Visualize dataflow execution
-
-## 7. Debug Annotations
-
-### 7.1 Source-Level Annotations
-
-COIL supports debug annotations in the source code:
-
-```
-DEBUG_ASSERT condition, message
-DEBUG_PRINT format, [values...]
-DEBUG_TRACE name, [values...]
-DEBUG_REGION_BEGIN name
-DEBUG_REGION_END name
-```
-
-### 7.2 Value Annotations
-
-For annotating values for debugging:
-
-```
-DEBUG_VALUE name, value
-DEBUG_TYPE_HINT variable, type
-DEBUG_ALIAS name, variable
-```
-
-### 7.3 Performance Annotations
-
-For debugging performance issues:
-
-```
-DEBUG_TIMER name, [precision]
-DEBUG_COUNTER name
-DEBUG_MEMORY_USAGE
-DEBUG_BANDWIDTH
-```
-
-## 8. Debug Information Compression
-
-### 8.1 Compression Techniques
-
-COIL employs multiple techniques to reduce debug information size:
-
-1. **String Table Deduplication**: Share common strings
-2. **Line Number Compression**: Run-length encoding of line mappings
-3. **Type Deduplication**: Share common type information
-4. **Incremental Updates**: Store only changes in debug information
-5. **Separate Debug Information**: Store debug info separately from code
-
-### 8.2 Compression Header
+Static analysis of hardware resource usage:
 
 ```c
 /**
- * @struct coil_debug_compression_header
- * @brief Header for compressed debug information
+ * @struct coil_hardware_usage
+ * @brief Hardware resource usage analysis
  */
 typedef struct {
-  uint32_t original_size;   /* Original uncompressed size */
-  uint32_t compressed_size; /* Compressed size */
-  uint32_t algorithm;       /* Compression algorithm */
-  uint32_t chunk_count;     /* Number of compressed chunks */
-  uint32_t chunk_size;      /* Size of each chunk (except possibly last) */
-  uint32_t flags;           /* Compression flags */
-} coil_debug_compression_header_t;
+  uint32_t mmio_regions_used; /* MMIO regions accessed */
+  uint32_t port_io_used;     /* Port I/O addresses used */
+  uint32_t interrupt_vectors; /* Interrupt vectors used */
+  uint32_t dma_channels;     /* DMA channels used */
+  uint32_t timers;           /* Timers used */
+  uint32_t details_offset;   /* Offset to detailed resource list */
+} coil_hardware_usage_t;
 ```
 
-## 9. Remote Debugging
+## 7. Post-Compilation Verification
 
-### 9.1 Remote Protocol
+### 7.1 Binary Validation
 
-COIL defines a protocol for remote debugging:
+Validation performed on the compiled binary:
+
+1. **Symbol Resolution**: Verify all symbols are resolved
+2. **Relocation Validation**: Check all relocations are valid
+3. **Section Validation**: Verify section layout and alignment
+4. **Entry Point Validation**: Confirm valid entry points
+5. **Export Validation**: Check exported symbols
+6. **Size Verification**: Validate total binary size
+
+### 7.2 Structural Validation
+
+Binary structure validation:
 
 ```c
 /**
- * @struct coil_remote_debug_header
- * @brief Header for remote debugging protocol
+ * @struct coil_validation_result
+ * @brief Results of binary validation
  */
 typedef struct {
-  uint32_t magic;           /* Magic number ('CODR') */
-  uint32_t version;         /* Protocol version */
-  uint32_t packet_size;     /* Packet size */
-  uint32_t sequence;        /* Sequence number */
-  uint32_t type;            /* Packet type */
-  uint32_t flags;           /* Packet flags */
-  uint32_t crc;             /* Error checking */
-} coil_remote_debug_header_t;
+  uint32_t error_count;     /* Number of errors found */
+  uint32_t warning_count;   /* Number of warnings */
+  uint32_t first_error;     /* Offset to first error */
+  uint32_t validation_flags; /* Validation flags */
+} coil_validation_result_t;
 ```
 
-### 9.2 Transport Mechanisms
+### 7.3 Link-Time Verification
 
-COIL supports multiple transport mechanisms for remote debugging:
+Verifications performed during linking:
 
-1. **TCP/IP**: Standard network debugging
-2. **USB**: Direct USB connection
-3. **JTAG**: JTAG debugging interface
-4. **Serial**: Serial port connection
-5. **Shared Memory**: Local debugging via shared memory
-6. **Custom Transports**: Extensible transport mechanism
+1. **Duplicate Symbol Detection**: Identify symbol conflicts
+2. **Undefined Reference Detection**: Find missing symbols
+3. **Version Compatibility**: Check version compatibility
+4. **Section Overlap Detection**: Identify section conflicts
+5. **Memory Map Validation**: Verify memory map constraints
 
-### 9.3 Security Considerations
+## 8. Post-Mortem Debugging
 
-For secure remote debugging:
+### 8.1 Core Dump Format
 
-1. **Authentication**: Verify debugger identity
-2. **Encryption**: Protect debug communication
-3. **Access Control**: Limit debug capabilities
-4. **Audit Logging**: Log debug operations
-5. **Secure Boot**: Protect against unauthorized debug
-
-## 10. Profiling Support
-
-### 10.1 Performance Counters
-
-COIL provides access to hardware performance counters:
-
-```
-PROFILE_COUNTER_CREATE counter, type
-PROFILE_COUNTER_START counter
-PROFILE_COUNTER_STOP counter
-PROFILE_COUNTER_RESET counter
-PROFILE_COUNTER_READ value, counter
-```
-
-### 10.2 Sampling Profiler
-
-For statistical profiling:
-
-```
-PROFILE_SAMPLE_START frequency, [events]
-PROFILE_SAMPLE_STOP
-PROFILE_REPORT file, format
-```
-
-### 10.3 Instrumentation
-
-For explicit code instrumentation:
-
-```
-PROFILE_INSTRUMENT_BEGIN function, [options]
-PROFILE_INSTRUMENT_END function
-PROFILE_FUNCTION_ENTER name
-PROFILE_FUNCTION_EXIT name
-```
-
-## 11. Memory Debugging
-
-### 11.1 Memory Tracker
-
-For tracking memory allocations and usage:
-
-```
-MEM_TRACK_ENABLE [options]
-MEM_TRACK_DISABLE
-MEM_TRACK_REPORT file, [format]
-```
-
-### 11.2 Memory Checks
-
-For validating memory operations:
-
-```
-MEM_CHECK_BOUNDS addr, size
-MEM_CHECK_LEAK
-MEM_CHECK_USE_AFTER_FREE
-MEM_CHECK_UNINIT
-```
-
-### 11.3 Memory Visualization
-
-For visualizing memory layout and usage:
-
-```
-MEM_VISUALIZE region, [format]
-MEM_HEATMAP region, metric
-MEM_TIMELINE operation, time
-```
-
-## 12. JIT Debugging
-
-### 12.1 JIT Compilation Interface
-
-COIL supports debugging of just-in-time compiled code:
-
-```
-JIT_DEBUG_REGISTER module, addr, size, source
-JIT_DEBUG_UNREGISTER module
-JIT_DEBUG_MAP addr, source_location
-```
-
-### 12.2 JIT Metadata
-
-For providing debug information for JIT-compiled code:
-
-```c
-/**
- * @struct coil_jit_debug_info
- * @brief Debug information for JIT-compiled code
- */
-typedef struct {
-  uint32_t module_id;       /* JIT module identifier */
-  uint32_t code_addr;       /* Code address */
-  uint32_t code_size;       /* Code size */
-  uint32_t debug_data;      /* Debug data address */
-  uint32_t debug_size;      /* Debug data size */
-  uint32_t source_map;      /* Source map address */
-  uint32_t flags;           /* JIT debug flags */
-} coil_jit_debug_info_t;
-```
-
-## 13. Core Dump Format
-
-### 13.1 Core Dump Header
-
-COIL defines a standard format for core dumps:
+COIL defines a standard format for post-mortem analysis:
 
 ```c
 /**
  * @struct coil_core_dump_header
- * @brief Header for COIL core dump
+ * @brief Header for COIL core dump for post-mortem analysis
  */
 typedef struct {
   uint32_t magic;           /* Magic number ('COCD') */
   uint32_t version;         /* Format version */
   uint32_t platform;        /* Platform identifier */
   uint32_t timestamp;       /* Timestamp */
-  uint32_t process_id;      /* Process identifier */
-  uint32_t thread_count;    /* Number of threads */
+  uint32_t process_id;      /* Process identifier (if applicable) */
+  uint32_t thread_count;    /* Number of threads (if applicable) */
   uint32_t section_count;   /* Number of sections */
   uint32_t sections_offset; /* Offset to section table */
   uint32_t reason;          /* Reason for core dump */
@@ -553,118 +331,257 @@ typedef struct {
 } coil_core_dump_header_t;
 ```
 
-### 13.2 Core Dump Sections
+### 8.2 Static Stack Unwinding
 
-| Section | Description |
-|---------|-------------|
-| REGISTERS | Register state |
-| MEMORY | Memory contents |
-| THREADS | Thread information |
-| MODULES | Loaded modules |
-| SYMBOLS | Symbol information |
-| STACK | Stack traces |
-| PROCESSOR | Processor state |
-| DEVICE | Device-specific state |
-| METADATA | Additional metadata |
-
-### 13.3 Core Dump Analysis
-
-COIL provides tools for analyzing core dumps:
-
-```
-DUMP_ANALYZE file, [options]
-DUMP_EXTRACT section, output, [options]
-DUMP_COMPARE file1, file2, [options]
-DUMP_SYMBOLIZE file, symbol_path, [options]
-```
-
-## 14. Debugger Integration
-
-### 14.1 Debugger Extension Interface
-
-COIL defines an interface for debugger extensions:
+Information for stack unwinding without runtime support:
 
 ```c
 /**
- * @struct coil_debug_extension
- * @brief Debugger extension interface
+ * @struct coil_unwind_info
+ * @brief Static information for stack unwinding
  */
 typedef struct {
-  uint32_t interface_version; /* Interface version */
-  uint32_t extension_id;      /* Extension identifier */
-  uint32_t capabilities;      /* Extension capabilities */
-  void* (*initialize)(void);   /* Initialization function */
-  void (*shutdown)(void);      /* Shutdown function */
-  uint32_t (*command)(const char* cmd, char* result, uint32_t size); /* Command handler */
-  uint32_t (*event_callback)(uint32_t event_type, void* data); /* Event callback */
-} coil_debug_extension_t;
+  uint32_t function_index;  /* Function identifier */
+  uint32_t code_start;      /* Code start offset */
+  uint32_t code_end;        /* Code end offset */
+  uint32_t frame_size;      /* Stack frame size */
+  uint32_t save_reg_mask;   /* Registers saved by function */
+  uint32_t unwind_opcodes;  /* Offset to unwind opcodes */
+  uint32_t flags;           /* Unwind flags */
+} coil_unwind_info_t;
 ```
 
-### 14.2 Custom Visualizers
+### 8.3 Exception Information
 
-COIL supports custom data visualizers:
+Static information for exception handling:
 
-```
-VISUALIZER_REGISTER name, type, handler
-VISUALIZER_UNREGISTER name
-VISUALIZER_APPLY value, visualizer, [options]
-```
-
-### 14.3 Scripting Interface
-
-For debugger scripting support:
-
-```
-SCRIPT_LOAD file
-SCRIPT_EVAL code
-SCRIPT_SET_HOOK event, handler
-SCRIPT_CALL function, [args...]
+```c
+/**
+ * @struct coil_exception_info
+ * @brief Exception handling information
+ */
+typedef struct {
+  uint32_t region_start;    /* Protected region start */
+  uint32_t region_end;      /* Protected region end */
+  uint32_t handler_offset;  /* Exception handler offset */
+  uint32_t exception_types; /* Handled exception types */
+  uint32_t flags;           /* Exception handling flags */
+} coil_exception_info_t;
 ```
 
-## 15. Implementation Guidelines
+## 9. Static Debugging Tools
 
-### 15.1 Debug Information Generation
+### 9.1 Offline Analyzer
 
-When generating debug information:
+Static analysis tools that work without runtime support:
 
-1. Generate debug information in parallel with code generation
-2. Use incremental updates for efficiency
-3. Compress debug information appropriately
-4. Validate source-to-instruction mapping
-5. Handle optimized code appropriately
-6. Ensure accurate variable location tracking
+1. **Binary Inspector**: Examine compiled binaries
+2. **Call Graph Visualizer**: Visualize static call graphs
+3. **Stack Usage Analyzer**: Analyze stack requirements
+4. **Memory Layout Visualizer**: Visualize memory layout
+5. **Register Allocation Viewer**: Analyze register usage
+6. **Control Flow Analyzer**: Analyze program flow
 
-### 15.2 Debugger Implementation
+### 9.2 Resource Analyzer
 
-For implementing a COIL debugger:
+Tools for analyzing resource usage:
 
-1. Support multiple target architectures
-2. Handle both source-level and machine-level debugging
-3. Implement efficient breakpoint management
-4. Support heterogeneous debugging
-5. Provide user-friendly visualization
-6. Scale to large programs and data sets
+1. **Memory Footprint Analyzer**: Analyze memory usage
+2. **Hardware Resource Analyzer**: Analyze hardware access
+3. **Power Profile Estimator**: Estimate power usage
+4. **Performance Estimator**: Estimate execution performance
+5. **Section Analyzer**: Analyze binary sections
 
-### 15.3 Performance Considerations
+### 9.3 Verification Tools
 
-For optimal debugging performance:
+Tools for static verification:
 
-1. Lazy loading of debug information
-2. Efficient breakpoint implementation
-3. Minimize intrusion in target program
-4. Optimize remote debugging protocol
-5. Cache frequently used debug information
-6. Support for parallel debugging
+1. **Type Checker**: Verify type correctness
+2. **Memory Safety Verifier**: Verify memory safety
+3. **Resource Limit Verifier**: Verify resource limits
+4. **Interrupt Safety Verifier**: Verify interrupt safety
+5. **Timing Analyzer**: Analyze execution timing
 
-## 16. Future Extensions
+## 10. Integration with Hardware Debug Support
+
+### 10.1 Hardware Debug Interfaces
+
+Support for hardware debugging interfaces:
+
+1. **JTAG Interface**: Standard JTAG debug support
+2. **SWD Interface**: Serial Wire Debug support
+3. **Trace Port**: Trace port integration
+4. **In-Circuit Emulator**: ICE support
+5. **Logic Analyzer**: Logic analyzer integration
+
+### 10.2 Hardware Breakpoints
+
+Mapping of source locations to hardware breakpoints:
+
+```c
+/**
+ * @struct coil_hw_breakpoint_info
+ * @brief Hardware breakpoint mapping information
+ */
+typedef struct {
+  uint32_t address;         /* Physical address */
+  uint32_t source_location; /* Source location reference */
+  uint32_t breakpoint_type; /* Breakpoint type */
+  uint32_t flags;           /* Breakpoint flags */
+} coil_hw_breakpoint_info_t;
+```
+
+### 10.3 Trace Support
+
+Integration with hardware trace capabilities:
+
+1. **Instruction Trace**: Map traced instructions to source
+2. **Data Trace**: Trace data accesses
+3. **Profile Trace**: Execution profiling support
+4. **Trigger Points**: Define trace trigger conditions
+5. **Trace Decoders**: Decode trace data for analysis
+
+## 11. Firmware-Specific Debugging
+
+### 11.1 Boot Sequence Debugging
+
+Special support for debugging boot sequences:
+
+1. **Early Boot Tracing**: Trace before main memory initialization
+2. **Reset Sequence Analysis**: Analyze reset handling
+3. **Initialization Validation**: Verify initialization sequence
+4. **Power-On Self-Test**: POST diagnostics support
+5. **Boot Time Measurement**: Measure boot sequence timing
+
+### 11.2 Hardware Register Debugging
+
+Support for hardware register debugging:
+
+```c
+/**
+ * @struct coil_hw_register_debug
+ * @brief Hardware register debug information
+ */
+typedef struct {
+  uint32_t address;         /* Register address */
+  uint32_t name_offset;     /* Offset to register name */
+  uint32_t width;           /* Register width in bits */
+  uint32_t access_type;     /* Access type (read, write, both) */
+  uint32_t fields_offset;   /* Offset to bit field information */
+  uint32_t flags;           /* Register flags */
+} coil_hw_register_debug_t;
+```
+
+### 11.3 Non-Volatile Memory Debugging
+
+Support for debugging non-volatile memory:
+
+1. **Flash Memory Analysis**: Analyze flash memory usage
+2. **EEPROM Analysis**: Analyze EEPROM usage
+3. **NVRAM Validation**: Validate NVRAM content
+4. **Configuration Storage Debug**: Debug configuration storage
+5. **Firmware Update Validation**: Validate firmware updates
+
+## 12. Optional Runtime Debug Extensions
+
+While COIL's core debugging focuses on static techniques, optional runtime extensions are available for environments that support them:
+
+### 12.1 Lightweight Runtime Monitoring
+
+Optional low-overhead runtime monitoring:
+
+```c
+/**
+ * @struct coil_runtime_monitor_config
+ * @brief Configuration for optional runtime monitoring
+ */
+typedef struct {
+  uint32_t features;        /* Enabled monitoring features */
+  uint32_t sampling_rate;   /* Sampling rate in cycles */
+  uint32_t buffer_size;     /* Monitoring buffer size */
+  uint32_t trigger_mask;    /* Event trigger mask */
+  uint32_t flags;           /* Monitoring flags */
+} coil_runtime_monitor_config_t;
+```
+
+### 12.2 Instrumentation Options
+
+Optional instrumentation capabilities:
+
+1. **Function Entry/Exit**: Instrument function boundaries
+2. **Memory Access**: Instrument memory operations
+3. **Branch Tracing**: Instrument branch decisions
+4. **Value Tracing**: Instrument value changes
+5. **Timing Measurement**: Measure execution timing
+
+### 12.3 Interactive Debugging
+
+Optional interactive debugging extensions:
+
+1. **Remote Debugging Protocol**: For hosted environments
+2. **Breakpoint Management**: Dynamic breakpoints
+3. **Memory Inspection**: Examine memory contents
+4. **Register Viewing**: Examine register contents
+5. **Expression Evaluation**: Evaluate debug expressions
+
+## 13. Implementation Guidelines
+
+### 13.1 Static Debugging Implementation
+
+When implementing static debugging support:
+
+1. Focus on compile-time and link-time techniques
+2. Generate comprehensive debug information
+3. Prioritize zero-overhead debugging approaches
+4. Implement validation during compilation
+5. Support post-mortem analysis without runtime hooks
+6. Leverage hardware debug capabilities when available
+7. Generate actionable diagnostic messages
+8. Support offline analysis of binaries
+9. Provide visualization tools for complex analysis
+10. Generate documentation from analysis results
+
+### 13.2 Bare-Metal Debugging Considerations
+
+Special considerations for bare-metal debugging:
+
+1. **Minimal Footprint**: Ensure debug information doesn't impact execution
+2. **ROM/Flash Constraints**: Consider read-only memory constraints
+3. **No Heap Requirement**: Avoid heap allocation for debugging
+4. **Hardware Access**: Be aware of hardware access for debugging
+5. **Timing Sensitivity**: Consider impact on timing-sensitive code
+6. **Interrupt Handling**: Special handling for interrupt debugging
+7. **Device Lifecycle**: Support for various device lifecycle stages
+8. **Error Resilience**: Recover from debugging errors
+9. **Physical Access**: Consider physical debug access requirements
+10. **Security Implications**: Address security aspects of debugging
+
+### 13.3 Debug Information Generation
+
+Guidelines for generating debug information:
+
+1. Use standard formats where possible (DWARF, etc.)
+2. Provide source location mapping
+3. Include type information
+4. Document memory layout
+5. Capture register allocation
+6. Record stack frame information
+7. Document hardware resource usage
+8. Provide call graph information
+9. Include optimization decisions
+10. Document section layout
+
+## 14. Future Extensions
 
 Areas for future development in COIL debugging support:
 
-1. **Time-Travel Debugging**: Record and replay execution
-2. **Live Editing**: Update code during debugging
-3. **AI-Assisted Debugging**: Intelligent debug suggestions
-4. **Hardware-Accelerated Debugging**: Use specialized hardware for debugging
-5. **Collaborative Debugging**: Multi-user debugging sessions
-6. **Fault Tolerance**: Debug partially-failed systems
-7. **Record-and-Replay**: Deterministic replay debugging
-8. **Predictive Debugging**: Predict potential failures
+1. **Formal Verification**: Prove code properties statically
+2. **AI-Assisted Debugging**: Use AI to identify potential issues
+3. **Visual Debugging**: Enhanced visualization of complex systems
+4. **Automated Root Cause Analysis**: Automatic issue identification
+5. **Cross-Layer Debugging**: Debug across hardware/software boundary
+6. **Configuration-Aware Debugging**: Debug configuration-specific issues
+7. **Hardware/Software Co-Debugging**: Integrated HW/SW debugging
+8. **Remote Firmware Diagnostics**: Diagnose deployed firmware
+9. **Security-Focused Debugging**: Debug security properties
+10. **Multi-Device Debugging**: Debug across multiple devices

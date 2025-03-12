@@ -2,7 +2,7 @@
 
 ## 1. Introduction
 
-The COIL Type System provides a comprehensive framework for representing data types across diverse processing units. This document specifies the type encoding format, primitive types, composite types, and type qualifiers available in COIL.
+The COIL Type System provides a comprehensive framework for representing data types across diverse processing units. This document specifies the type encoding format, primitive types, composite types, and type qualifiers available in COIL. The type system is designed to operate without runtime dependencies, making it suitable for bare-metal environments like bootloaders and UEFI applications while still supporting complex workloads when needed.
 
 ## 2. Type Encoding
 
@@ -19,6 +19,8 @@ Where:
 - `width`: The bit width or size of the type (8 bits)
 - `qualifiers`: Type qualifiers (8 bits)
 - `attributes`: Additional type attributes (12 bits)
+
+This compact, static encoding ensures types can be processed efficiently at compile time without requiring runtime type information.
 
 ### 2.2 Type Categories
 
@@ -140,7 +142,7 @@ Fixed-point types represent real numbers with fixed precision.
 
 ### 4.1 Pointer Types
 
-Pointers reference memory locations, with optional memory space information.
+Pointers reference memory locations, with optional memory space information. All pointer operations are resolved at compile time without requiring a runtime system.
 
 | Type | Encoding | Width (bits) | Description |
 |------|----------|--------------|-------------|
@@ -150,7 +152,7 @@ Pointers reference memory locations, with optional memory space information.
 
 #### 4.1.1 Memory Space Qualified Pointers
 
-Memory space qualified pointers indicate the memory space of the referenced data.
+Memory space qualified pointers indicate the memory space of the referenced data, which is particularly important for bare-metal programming.
 
 | Type | Encoding | Width (bits) | Description |
 |------|----------|--------------|-------------|
@@ -162,7 +164,7 @@ Memory space qualified pointers indicate the memory space of the referenced data
 
 ### 4.2 Vector Types
 
-Vectors are homogeneous collections of elements processed in SIMD fashion.
+Vectors are homogeneous collections of elements processed in SIMD fashion. Vector operations map directly to hardware SIMD instructions where available.
 
 | Type | Encoding | Width (bits) | Description |
 |------|----------|--------------|-------------|
@@ -205,7 +207,7 @@ Tensors are multi-dimensional arrays used for deep learning and scientific compu
 
 ### 4.5 Array Types
 
-Arrays are collections of elements with a fixed size, accessed by index.
+Arrays are collections of elements with a fixed size, accessed by index. Array layouts and access patterns are determined at compile time.
 
 The array type is encoded with the element type and size in the extended attributes.
 
@@ -215,7 +217,7 @@ ARRAY(element_type, size)
 
 ### 4.6 Structure Types
 
-Structures group related data elements of potentially different types.
+Structures group related data elements of potentially different types. Structure layouts are determined at compile time.
 
 Structure types are defined separately and referenced by ID.
 
@@ -225,7 +227,7 @@ STRUCT(id)
 
 ### 4.7 Union Types
 
-Unions represent multiple possible types for the same memory region.
+Unions represent multiple possible types for the same memory region. Union layouts are determined at compile time.
 
 ```
 UNION(id)
@@ -293,7 +295,7 @@ Type qualifiers modify the characteristics of a type.
 | Qualifier | Bit | Description |
 |-----------|-----|-------------|
 | CONST | 0 | Value cannot be modified |
-| VOLATILE | 1 | Value may change externally |
+| VOLATILE | 1 | Value may change externally (important for MMIO) |
 | IMMUTABLE | ? | Value cannot be modified after initialization |
 
 ### 6.2 Memory Qualifiers
@@ -320,71 +322,62 @@ Type qualifiers modify the characteristics of a type.
 
 ### 7.1 Structure Definition
 
-Structure types are defined with a layout of fields:
+Structure types are defined with a layout of fields, determined at compile time:
 
-```
-struct_def {
-  id: uint32
-  name: string
-  field_count: uint32
-  fields: [
-    {
-      name: string
-      type: type_encoding
-      offset: uint32
-      size: uint32
-      alignment: uint32
-    },
-    ...
-  ]
-  size: uint32
-  alignment: uint32
-  attributes: uint32
-}
+```c
+/**
+ * @struct coil_struct_type_def
+ * @brief Structure type definition (compile-time)
+ */
+typedef struct {
+  uint32_t id;              /* Structure identifier */
+  uint32_t name_offset;     /* Offset to name string */
+  uint32_t field_count;     /* Number of fields */
+  uint32_t fields_offset;   /* Offset to field definitions */
+  uint32_t size;            /* Total structure size in bytes */
+  uint32_t alignment;       /* Structure alignment requirement */
+  uint32_t attributes;      /* Structure attributes */
+} coil_struct_type_def_t;
 ```
 
 ### 7.2 Union Definition
 
-Union types are defined similarly:
+Union types are defined similarly, with layout determined at compile time:
 
-```
-union_def {
-  id: uint32
-  name: string
-  member_count: uint32
-  members: [
-    {
-      name: string
-      type: type_encoding
-    },
-    ...
-  ]
-  size: uint32
-  alignment: uint32
-  attributes: uint32
-}
+```c
+/**
+ * @struct coil_union_type_def
+ * @brief Union type definition (compile-time)
+ */
+typedef struct {
+  uint32_t id;              /* Union identifier */
+  uint32_t name_offset;     /* Offset to name string */
+  uint32_t member_count;    /* Number of members */
+  uint32_t members_offset;  /* Offset to member definitions */
+  uint32_t size;            /* Total union size in bytes */
+  uint32_t alignment;       /* Union alignment requirement */
+  uint32_t attributes;      /* Union attributes */
+} coil_union_type_def_t;
 ```
 
 ### 7.3 Function Type Definition
 
 Function types define the signature of a function:
 
-```
-function_type_def {
-  id: uint32
-  return_type: type_encoding
-  param_count: uint32
-  params: [
-    {
-      name: string
-      type: type_encoding
-    },
-    ...
-  ]
-  varargs: bool
-  calling_convention: uint8
-  attributes: uint32
-}
+```c
+/**
+ * @struct coil_function_type_def
+ * @brief Function type definition (compile-time)
+ */
+typedef struct {
+  uint32_t id;              /* Function type identifier */
+  uint32_t return_type;     /* Return type encoding */
+  uint32_t param_count;     /* Number of parameters */
+  uint32_t params_offset;   /* Offset to parameter definitions */
+  uint32_t varargs;         /* 1 if function takes variable arguments */
+  uint32_t calling_convention; /* Calling convention identifier */
+  uint32_t attributes;      /* Function type attributes */
+} coil_function_type_def_t;
 ```
 
 ## 8. Type Representations
@@ -409,13 +402,13 @@ array<i32, 10>          // Array of 10 32-bit integers
 
 In the COIL binary format, types are encoded as described in Section 2.1.
 
-For complex types that require more information than fits in the basic encoding, an extended type table is used.
+For complex types that require more information than fits in the basic encoding, an extended type table is used. This table is generated at compile time and included in the binary.
 
 ## 9. Type Conversions
 
 ### 9.1 Implicit Conversions
 
-COIL defines a set of safe implicit conversions:
+COIL defines a set of safe implicit conversions, all resolved at compile time:
 
 | From | To | Condition |
 |------|----|----|
@@ -430,7 +423,7 @@ COIL defines a set of safe implicit conversions:
 
 ### 9.2 Explicit Conversions
 
-All other conversions require explicit conversion operations.
+All other conversions require explicit conversion operations, which are checked at compile time.
 
 ## 10. Type Compatibility
 
@@ -442,6 +435,8 @@ Types A and B are assignment-compatible if:
 3. A and B are pointers to assignment-compatible types
 4. A is a derived type of B
 
+Compatibility is checked at compile time for type safety.
+
 ### 10.2 Operation Compatibility
 
 Types A and B are operation-compatible for an operation if:
@@ -449,83 +444,117 @@ Types A and B are operation-compatible for an operation if:
 2. A and B are both numeric types
 3. A and B are both vector types with the same element count and operation-compatible element types
 
+Operation compatibility is checked at compile time.
+
 ## 11. Type Safety
 
 ### 11.1 Type Checking Rules
 
-COIL enforces type safety through:
-1. Strict type checking for operations
-2. Validation of conversions
-3. Memory access type validation
-4. Array bounds checking
-5. Null pointer checking
+COIL enforces type safety through static analysis:
+1. Strict compile-time type checking for operations
+2. Validation of conversions during compilation
+3. Memory access type validation at compile time
+4. Compile-time array bounds checking where possible
+5. Null pointer checking at compile time where possible
 
 ### 11.2 Type Aliases
 
 Type aliases allow creating alternative names for existing types:
 
-```
-type_alias {
-  id: uint32
-  name: string
-  target_type: type_encoding
-}
+```c
+/**
+ * @struct coil_type_alias
+ * @brief Type alias definition (compile-time)
+ */
+typedef struct {
+  uint32_t id;              /* Alias identifier */
+  uint32_t name_offset;     /* Offset to alias name */
+  uint32_t target_type;     /* Target type encoding */
+} coil_type_alias_t;
 ```
 
 ## 12. Generic Types
 
 ### 12.1 Type Parameters
 
-COIL supports parameterized types for generic programming:
+COIL supports parameterized types for generic programming, resolved at compile time:
 
-```
-type_parameter {
-  id: uint32
-  name: string
-  constraints: [type_encoding, ...]
-}
+```c
+/**
+ * @struct coil_type_parameter
+ * @brief Type parameter definition (compile-time)
+ */
+typedef struct {
+  uint32_t id;              /* Parameter identifier */
+  uint32_t name_offset;     /* Offset to parameter name */
+  uint32_t constraints_count; /* Number of constraints */
+  uint32_t constraints_offset; /* Offset to constraint types */
+} coil_type_parameter_t;
 ```
 
 ### 12.2 Generic Type Instantiation
 
-Generic types can be instantiated with concrete types:
+Generic types are instantiated with concrete types during compilation:
 
+```c
+/**
+ * @struct coil_generic_instance
+ * @brief Generic type instantiation (compile-time)
+ */
+typedef struct {
+  uint32_t generic_id;      /* Generic type identifier */
+  uint32_t instance_id;     /* Instance identifier */
+  uint32_t arguments_count; /* Number of type arguments */
+  uint32_t arguments_offset; /* Offset to type arguments */
+} coil_generic_instance_t;
 ```
-generic_instance {
-  generic_id: uint32
-  instance_id: uint32
-  arguments: [type_encoding, ...]
-}
-```
 
-## 13. Implementation Guidelines
+## 13. Bare-Metal Implementation Guidelines
 
-### 13.1 Type System Implementation
+### 13.1 Type System Implementation for Bare Metal
 
-When implementing the COIL type system:
+When implementing the COIL type system for bare-metal environments:
 
-1. Use a unified type representation internally
-2. Validate type compatibility for all operations
-3. Implement efficient type conversions
-4. Handle specialized hardware types appropriately
-5. Map COIL types to native hardware types when possible
+1. **Static Type Resolution**: Resolve all types at compile/link time
+2. **No Runtime Type Information**: Avoid generating runtime type metadata
+3. **Direct Hardware Mapping**: Map types directly to hardware representations
+4. **Size and Alignment Awareness**: Honor hardware size/alignment requirements
+5. **No Dynamic Allocation**: Avoid dynamic type allocation or construction
+6. **Memory-Efficient Representation**: Use compact type encodings
+7. **Hardware Register Mapping**: Support direct mapping to hardware registers
+8. **MMIO Support**: Special handling for memory-mapped I/O types
+9. **Interrupt Vector Types**: Support for interrupt vector tables
+10. **Position-Independent Types**: Support for position-independent code
 
-### 13.2 Type Lowering
+### 13.2 Type Lowering for Bare Metal
 
-For target-specific code generation:
+For target-specific code generation in bare-metal environments:
 
-1. Lower complex types to simpler representations when necessary
-2. Map COIL types to native hardware types
-3. Implement emulation for unsupported types
-4. Optimize type representations for the target architecture
+1. **Direct Register Mapping**: Map types to hardware registers
+2. **Memory Layout Control**: Precise control over memory layout
+3. **Static Memory Allocation**: Pre-allocate all required memory
+4. **Hardware-Specific Types**: Support for special hardware types
+5. **Alignment Requirements**: Honor hardware alignment requirements
+6. **Bitfield Packing**: Efficient packing of bit fields for hardware registers
+7. **Volatile Handling**: Proper handling of volatile memory accesses
+8. **Atomic Operations**: Support for atomic operations where available
+9. **Interrupt Context Types**: Special handling for interrupt contexts
+10. **Device Register Types**: Types for device register access
 
-### 13.3 Type Extensions
+### 13.3 Type Extensions for Bare Metal
 
-For custom hardware features:
+For custom bare-metal hardware features:
 
-1. Use the EXTENDED type category for custom types
-2. Document the semantics of custom types
-3. Provide fallback implementations for unsupported platforms
+1. **Hardware Register Maps**: Types representing hardware register maps
+2. **Device Configuration Types**: Types for device configuration
+3. **Memory-Mapped I/O Types**: Special types for MMIO access
+4. **Port I/O Types**: Types for port I/O operations
+5. **Interrupt Vector Types**: Types for interrupt vector tables
+6. **DMA Buffer Types**: Special types for DMA buffer handling
+7. **Hardware Timer Types**: Types for hardware timer access
+8. **Power Management Types**: Types for power management hardware
+9. **Security Hardware Types**: Types for security-related hardware
+10. **Boot Configuration Types**: Types for boot configuration data
 
 ## 14. Future Extensions
 
@@ -536,3 +565,5 @@ Areas for future development in the COIL type system:
 3. **Linear/Affine Types**: Enhanced resource management
 4. **Refinement Types**: Types with predicates
 5. **Higher-kinded Types**: Type constructors that take types as parameters
+
+These extensions would maintain the principle of static resolution during compilation without introducing runtime type dependencies.

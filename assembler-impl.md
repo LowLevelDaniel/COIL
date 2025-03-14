@@ -538,42 +538,7 @@ void generate_dwarf_info(module_t* module, native_context_t* ctx, elf_file_t* el
 
 ## 7. Runtime Support
 
-### 7.1 Bare-Metal Runtime
-
-Provide minimal runtime support for bare-metal environments:
-
-```c
-// Example bare-metal initialization (pseudocode)
-void generate_bare_metal_startup(module_t* module, native_context_t* ctx) {
-    // Create startup code
-    basic_block_t* startup = create_basic_block("_start");
-    
-    // Initialize hardware
-    add_instruction(startup, "INIT_STACK", stack_pointer, immediate(STACK_TOP));
-    add_instruction(startup, "INIT_DATA", data_section, data_section_size);
-    
-    // Initialize globals
-    for (int i = 0; i < module->global_count; i++) {
-        if (module->globals[i].has_initializer) {
-            add_global_initialization(startup, &module->globals[i], ctx);
-        }
-    }
-    
-    // Call main function
-    function_t* main = find_function(module, "main");
-    if (main) {
-        add_instruction(startup, "CALL", no_result, function_ref(main));
-    }
-    
-    // Add halt instruction
-    add_instruction(startup, "HALT");
-    
-    // Add startup block to module
-    add_basic_block_to_module(module, startup);
-}
-```
-
-### 7.2 OS-Dependent Runtime
+### 7.1 OS-Dependent Runtime
 
 Implement OS-dependent functionality when needed:
 
@@ -608,7 +573,7 @@ void generate_os_runtime_library(module_t* module, native_context_t* ctx) {
 }
 ```
 
-### 7.3 Cross-Device Support
+### 7.2 Cross-Device Support
 
 Implement cross-device coordination when needed:
 

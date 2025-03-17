@@ -8,6 +8,9 @@
 * features to inform code generation decisions without relying on
 * architecture-specific extension flags.
 * 
+* This then goes on to help with emulation and the COIL policy
+* all features implemented regardless of target.
+*
 * @version 1.1.0
 */
 

@@ -38,6 +38,8 @@
 
 ## Overview
 
+WARNING THIS IS NOT AN IMPLEMENTATION. this is instead the specification for the COIL standard utilizing markdown.
+
 COIL is a binary language format designed to serve as an optimal intermediate representation between high-level languages and native machine code. Unlike traditional bytecode formats that require runtime interpretation, COIL is designed for direct translation to native code while preserving architecture independence and optimization opportunities.
 
 COIL aims to provide a unified target for language implementers while giving low-level system programmers the control they need without forcing them to commit to a specific architecture.

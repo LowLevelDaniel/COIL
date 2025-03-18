@@ -24,6 +24,10 @@ The COIL object formats are designed according to several key principles:
 
 5. **Explicit Control**: Provide mechanisms for explicit control over object format features when needed.
 
+## Binary Format Structure
+
+Both COIL object formats are binary formats designed for efficient processing by toolchains. Unlike text-based formats that require parsing, these binary formats can be directly mapped to memory and processed with minimal overhead.
+
 ## COIL Object Format (COF)
 
 The COIL Object Format is the primary intermediate representation used by COIL tools. It preserves all of COIL's abstractions, including variable management, virtual registers, type information, and target-specific details.
@@ -36,13 +40,27 @@ A COIL Object Format file consists of a header followed by a series of sections:
 +----------------+
 | COF Header     |
 +----------------+
-| Section 1      |
+| Target Table   |
 +----------------+
-| Section 2      |
+| Section Table  |
++----------------+
+| Symbol Table   |
++----------------+
+| String Table   |
++----------------+
+| Section 1 Data |
++----------------+
+| Section 2 Data |
 +----------------+
 | ...            |
 +----------------+
-| Section N      |
+| Section N Data |
++----------------+
+| Relocation Info|
++----------------+
+| Variable Info  |
++----------------+
+| Type Info      |
 +----------------+
 ```
 
@@ -295,6 +313,13 @@ A Native Object Format file consists of a header followed by a series of section
 +----------------+
 | Section Table  |
 +----------------+
+| Symbol Table   |
++----------------+
+| String Table   |
++----------------+
+| Target Switch  |
+| Table          |
++----------------+
 | Section 1 Data |
 +----------------+
 | Section 2 Data |
@@ -303,11 +328,10 @@ A Native Object Format file consists of a header followed by a series of section
 +----------------+
 | Section N Data |
 +----------------+
-| Symbol Table   |
-+----------------+
-| String Table   |
-+----------------+
 | Relocation Info|
++----------------+
+| Data Mapping   |
+| Table          |
 +----------------+
 ```
 
@@ -336,6 +360,8 @@ typedef struct nof_header {
   uint32_t symbol_table_offset;  /**< Offset to symbol table */
   uint32_t string_table_offset;  /**< Offset to string table */
   uint32_t relocation_table_offset; /**< Offset to relocation table */
+  uint32_t target_switch_table_offset; /**< Offset to target switch table */
+  uint32_t data_mapping_table_offset;  /**< Offset to data mapping table */
 } nof_header_t;
 ```
 
@@ -362,7 +388,7 @@ typedef struct nof_target {
 
 ### Section Table
 
-The section table defines the sections within the object file:
+The section table structure is similar to that of the COF format, but with additional fields specific to the NOF format:
 
 ```c
 /**
@@ -379,31 +405,14 @@ typedef struct nof_section {
   uint32_t alignment;          /**< Section alignment */
   uint32_t relocation_count;   /**< Number of relocations */
   uint32_t relocation_offset;  /**< Offset to relocation table */
+  uint32_t load_address;       /**< Load address (if different from virtual address) */
+  uint32_t physical_size;      /**< Physical size (if different from virtual size) */
 } nof_section_t;
 ```
 
-### Symbol Table
+### Target Switch Table
 
-The symbol table contains information about symbols defined or referenced in the object file:
-
-```c
-/**
- * @brief Symbol table entry
- */
-typedef struct nof_symbol {
-  uint32_t name_offset;        /**< Offset to symbol name in string table */
-  uint32_t section_index;      /**< Section index (0 for external) */
-  uint64_t value;              /**< Symbol value (address or offset) */
-  uint64_t size;               /**< Symbol size */
-  uint16_t type;               /**< Symbol type */
-  uint16_t flags;              /**< Symbol flags */
-  uint32_t target_id;          /**< Target architecture (0 for generic) */
-} nof_symbol_t;
-```
-
-### Target Switch Records
-
-Target switch records provide information about transition points between different target architectures:
+The target switch table contains information about transition points between different target architectures:
 
 ```c
 /**
@@ -420,9 +429,9 @@ typedef struct nof_target_switch {
 } nof_target_switch_t;
 ```
 
-### Data Mapping Records
+### Data Mapping Table
 
-Data mapping records define how data is translated between different target architectures during a target switch:
+The data mapping table defines how data is translated between different target architectures during a target switch:
 
 ```c
 /**
@@ -440,35 +449,162 @@ typedef struct nof_data_mapping {
 } nof_data_mapping_t;
 ```
 
+## In-Memory Layout
+
+Both the COF and NOF formats are designed to be efficiently mapped to memory for processing. The header and table structures can be directly mapped to C structures, and the section data can be accessed via offsets from the file base.
+
+```
+Memory Layout:
++----------------+  ← base address
+| Header         |
++----------------+  ← base + header_size
+| Tables         |
++----------------+  ← base + table_offset
+| Section 1 Data |
++----------------+  ← base + section_1_offset
+| Section 2 Data |
++----------------+  ← base + section_2_offset
+| ...            |
+```
+
+This design minimizes the need for parsing and allows for efficient in-place processing of the object file.
+
 ## Format Conversion
 
-### COF to NOF Conversion
+### COF to NOF Conversion Process
 
 Converting from COIL Object Format to Native Object Format involves the following steps:
 
-1. **Code Generation**: Translate COIL instructions to native machine code for each target architecture.
-2. **Symbol Resolution**: Resolve symbolic references and generate relocation information.
-3. **Target Switch Generation**: Generate target switch records and data mapping information.
-4. **Header Creation**: Create the NOF header and tables.
-5. **Section Population**: Populate sections with native code and data.
+1. **Code Generation**: For each target architecture:
+   - Parse COIL instructions from the COF code sections
+   - Map virtual registers to physical registers
+   - Allocate variables to registers or memory
+   - Generate native machine code
+   - Create target-specific sections in the NOF
+
+2. **Symbol Resolution**:
+   - Resolve symbolic references within each target
+   - Generate relocation information for unresolved symbols
+   - Create the NOF symbol table
+
+3. **Target Switch Generation**:
+   - Identify target switch points in the COF
+   - Generate target switch records for the NOF
+   - Create data mapping information for cross-target data transfers
+
+4. **Header and Table Creation**:
+   - Create the NOF header
+   - Generate target, section, symbol, and string tables
+   - Populate target switch and data mapping tables
+
+5. **Section Population**:
+   - Copy section data to the NOF
+   - Apply relocations where possible
+   - Add metadata for remaining relocations
+
+The resulting NOF file contains native machine code for each target architecture, along with the necessary metadata to support target switching and runtime selection.
+
+### Diagram of Conversion Process
+
+```
+                 +----------------+
+                 | COF File       |
+                 +----------------+
+                          |
+                          v
+         +----------------------------------+
+         | COF to NOF Converter             |
+         |                                  |
+         | 1. Parse COF structures          |
+         | 2. For each target:              |
+         |    - Generate native code        |
+         |    - Create target sections      |
+         | 3. Process symbols and           |
+         |    relocations                   |
+         | 4. Generate target switch info   |
+         | 5. Create NOF structures         |
+         +----------------------------------+
+                          |
+                          v
+                 +----------------+
+                 | NOF File       |
+                 +----------------+
+```
+
+## Linking Process
 
 ### COF Linking
 
 COIL Object Format files can be linked together to produce a single COF file:
 
-1. **Section Merging**: Merge sections of the same type and target.
-2. **Symbol Resolution**: Resolve external symbols between input files.
-3. **Relocation Processing**: Update relocations to reflect the new merged layout.
-4. **Optimization**: Perform link-time optimization based on the merged information.
+1. **Section Merging**: 
+   - Identify sections with the same type and target
+   - Merge section contents while preserving alignment
+   - Update section offsets and sizes
+
+2. **Symbol Resolution**:
+   - Resolve external symbols between input files
+   - Update symbol values based on merged section layout
+   - Create a unified symbol table
+
+3. **Relocation Processing**:
+   - Update relocations to reflect the new merged layout
+   - Resolve relocations where possible
+   - Preserve unresolved relocations
+
+4. **Variable Information Merging**:
+   - Merge variable information from input files
+   - Update scope information based on merged section layout
+   - Resolve variable references between input files
+
+5. **Optimization**:
+   - Perform link-time optimization based on the merged information
+   - Eliminate dead code and unused variables
+   - Inline small functions where beneficial
+
+The resulting COF file contains the merged contents of the input files, with resolved symbols and optimized code.
 
 ### NOF Linking
 
 Native Object Format files can be linked together to produce a single NOF file:
 
-1. **Section Merging**: Merge sections of the same type and target.
-2. **Symbol Resolution**: Resolve external symbols between input files.
-3. **Target Switch Mapping**: Update target switch records to reflect the new layout.
-4. **Relocation Processing**: Update relocations to reflect the new merged layout.
+1. **Section Merging**:
+   - Identify sections with the same type and target
+   - Merge section contents while preserving alignment
+   - Update section offsets and sizes
+
+2. **Symbol Resolution**:
+   - Resolve external symbols between input files
+   - Update symbol values based on merged section layout
+   - Create a unified symbol table
+
+3. **Target Switch Mapping**:
+   - Update target switch records to reflect the new layout
+   - Resolve target switch references between input files
+   - Create a unified target switch table
+
+4. **Data Mapping Merging**:
+   - Merge data mapping information from input files
+   - Update symbol references in data mapping records
+   - Create a unified data mapping table
+
+5. **Relocation Processing**:
+   - Update relocations to reflect the new merged layout
+   - Resolve relocations where possible
+   - Preserve unresolved relocations for final linking
+
+The resulting NOF file contains the merged contents of the input files, with unified target switch and data mapping information.
+
+## Debugging Support
+
+Both COF and NOF formats include provisions for debugging information:
+
+1. **Symbol Information**: Detailed information about symbols, including names, types, and locations.
+2. **Source Information**: References to source files and line numbers.
+3. **Variable Information**: Type and location information for variables.
+4. **Type Information**: Detailed type definitions for complex data structures.
+
+This information can be used by debuggers to provide source-level debugging of COIL code, even across target switches.
 
 ## Usage Examples
 
@@ -476,56 +612,86 @@ Native Object Format files can be linked together to produce a single NOF file:
 
 A library that can run efficiently on multiple architectures:
 
-```
-// Build process:
-// 1. Compile source to COIL Object Format (COF)
-// 2. Link multiple COF files together
-// 3. Convert to Native Object Format (NOF)
-// 4. Link with platform-specific startup code
+1. **Build Process**:
+   - Compile source to COIL Object Format (COF)
+   - Link multiple COF files together
+   - Convert to Native Object Format (NOF)
+   - Link with platform-specific startup code
 
-// Result:
-// - Single library file containing code for multiple architectures
-// - Runtime detection of available architecture
-// - Automatic selection of optimal implementation
-```
+2. **Result**:
+   - Single library file containing code for multiple architectures
+   - Runtime detection of available architecture
+   - Automatic selection of optimal implementation
 
 ### Heterogeneous Computing
 
 A program that executes parts of its code on different processing units:
 
-```
-// Build process:
-// 1. Compile CPU code to COIL with CPU target
-// 2. Compile GPU code to COIL with GPU target
-// 3. Link into single COF file with target switches
-// 4. Convert to NOF with explicit target switching
+1. **Build Process**:
+   - Compile CPU code to COIL with CPU target
+   - Compile GPU code to COIL with GPU target
+   - Link into single COF file with target switches
+   - Convert to NOF with explicit target switching
 
-// Result:
-// - Single binary with both CPU and GPU code
-// - Explicit control over data transfer between targets
-// - Efficient execution across heterogeneous processing units
-```
+2. **Result**:
+   - Single binary with both CPU and GPU code
+   - Explicit control over data transfer between targets
+   - Efficient execution across heterogeneous processing units
 
 ### Boot Loader
 
 A boot loader that transitions between processor modes:
 
-```
-// Build process:
-// 1. Compile 16-bit real mode code to COIL
-// 2. Compile 32-bit protected mode code to COIL
-// 3. Compile 64-bit long mode code to COIL
-// 4. Link with explicit target switches
-// 5. Generate NOF with target transitions
+1. **Build Process**:
+   - Compile 16-bit real mode code to COIL
+   - Compile 32-bit protected mode code to COIL
+   - Compile 64-bit long mode code to COIL
+   - Link with explicit target switches
+   - Generate NOF with target transitions
 
-// Result:
-// - Boot loader that switches between processor modes
-// - Unified codebase with explicit transition points
-// - Efficient handling of mode-specific requirements
+2. **Result**:
+   - Boot loader that switches between processor modes
+   - Unified codebase with explicit transition points
+   - Efficient handling of mode-specific requirements
+
+## Binary File Example
+
+The following hexdump illustrates the structure of a simple COF file containing code for a single target:
+
 ```
+00000000: 434f 494c 0001 0000 0000 0001 0000 0002  COIL............
+00000010: 0000 0003 0000 0020 0000 0000 0000 0000  ....... ........
+00000020: 0000 0000 0000 6012 ca5f 0000 0000 0000  ......`.._.....
+00000030: 0000 0040 0000 0098 0000 00c0 0000 00e0  ...@............
+00000040: 0000 0000 0000 0001 0000 0001 0000 000f  ................
+00000050: 0000 0000 0000 0000 0000 0060 0000 0020  ...........`... 
+00000060: 0000 0000 0000 0000 0000 0100 0000 0001  ................
+00000070: 0000 0000 0000 0000 0000 0001 0000 0000  ................
+00000080: 0000 0000 0000 0140 0000 0010 0000 0004  .......@........
+00000090: 0000 0000 0000 0000 0006 0000 0000 0000  ................
+000000a0: 0000 0001 0000 0000 0000 0000 0000 0001  ................
+000000b0: 0000 0001 0000 0000 0000 0000 0019 0000  ................
+000000c0: 0026 0000 0000 0000 002f 0000 0000 0000  .&......./......
+000000d0: 0000 0000 0000 0000 0000 0000 0000 2e74  ...............t
+000000e0: 6578 7400 2e64 6174 6100 6d61 696e 00    ext..data.main.
+000000f0: ...
+```
+
+This hexdump shows:
+- The "COIL" magic number at offset 0
+- Version 1.0 at offset 4
+- 1 target at offset 8
+- 2 sections at offset C
+- 3 symbols at offset 10
+- String table size of 32 bytes at offset 14
+- Various offsets to tables at offsets 30-3C
+- Section and symbol table entries at offsets 40-DF
+- String table containing ".text", ".data", and "main" at offset E0
 
 ## Conclusion
 
 The COIL object formats provide a powerful foundation for cross-platform and heterogeneous computing. By preserving COIL's abstractions in the COF format and providing efficient native code delivery in the NOF format, they enable a wide range of use cases from embedded systems to high-performance computing.
 
 The explicit support for multiple target architectures within a single binary, combined with the target switching and data mapping capabilities, makes COIL uniquely suited for modern computing environments where workloads may be distributed across diverse processing units.
+
+These formats, along with the tools to process them, form a comprehensive ecosystem for low-level, cross-platform development that bridges the gap between high-level languages and machine code while maintaining direct control over hardware resources.

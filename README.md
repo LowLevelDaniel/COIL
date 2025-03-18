@@ -1,15 +1,27 @@
 # Computer Oriented Intermediate Language
-Computer Oriented Intermediate Language (COIL) is a binary language format made for computers sitting right above native binaries.
+COIL is a binary language format designed to be an optimal intermediate representation sitting just above native binaries. It aims to combine the benefits of low-level control with architecture independence and optimization opportunities.
 
-COIL has examples written in a pseudo code called CEL which is an imaginary langauge made for humans to view COIL code and read examples without having to decode binary.
+## Core Benefits
+- Direct mapping to native code while maintaining portability
+- Minimal abstraction overhead
+- Explicit optimization opportunities
+- No runtime dependencies
 
-More information on the complete COIL specification in [COIL Overview](./coil/OVERVIEW.md)
+## Project Structure
+- `/coil/` - Core specifications and documentation
 
-More information on the pseudo CEL language specification in [CEL Grammar Specifcation](./CEL-GRAMMAR.md)
+## Versioning
+COIL follows a strict versioning scheme defined in [VERSION.md](./VERSION.md)
 
-Contributors should read the [Contributing Section](./CONTRIBUTING.md) and our [VERSION Control Section](./VERSION.md)
+## Roadmap to 1.0.0
+- [x] Initial specification
+- [ ] Complete ISA definition
+- [ ] Reference assembler
+- [ ] Standard library implementation
+- [ ] Test suite
 
-And for any users of COIL either compilers targeting or attempts at making COIL assemblers take a look at the [license](./LICENSE)
+## Related Projects
+[Any complementary tools or libraries]
 
-## The team behind COIL
+## The Low Level Team
 The Low Level Team (LLT) is a relatively small team of like minded open source developers who wish to create an entirely new way to interact with technology from the ground up. Starting with languages LLT will go on to create operating systems browsers, graphic libraries, game engines and so much more. Most members of LLT are mostly anonymous the ones which are public you can probably find on github. LLT does not search for recognition but for open source control of the future.

@@ -2,62 +2,115 @@
 
 ## Overview
 
-COIL is a low-level intermediate language designed to replace traditional assembly languages while remaining close to machine code. It provides a unified representation that enables cross-architecture development and sophisticated optimizations without sacrificing performance or direct hardware control.
+COIL is a binary intermediate language designed to bridge the gap between assembly languages and machine code. It provides a unified representation that enables cross-architecture development and sophisticated optimizations without sacrificing low-level control. 
+
+Unlike text-based intermediate representations such as LLVM IR, COIL is a binary format designed for direct consumption by toolchains with minimal parsing overhead. It maintains the explicit hardware control of assembly languages while introducing minimal abstractions that enable powerful optimizations and cross-platform capabilities.
 
 ## Design Philosophy
 
 COIL embraces the following core principles:
 
-1. **Minimal Abstraction**: COIL provides only the abstractions necessary to enable cross-platform compatibility and optimization, without hiding the underlying hardware.
+1. **Binary-First**: COIL is a binary format first and foremost, optimized for processing efficiency rather than human readability.
 
-2. **Performance-First**: Every feature in COIL is designed with performance as the primary consideration, enabling optimizations that would be difficult to achieve in either high-level languages or pure assembly.
+2. **Minimal Abstraction**: COIL provides only the abstractions necessary to enable cross-platform compatibility and optimization, without hiding the underlying hardware.
 
-3. **Cross-Architecture Compatibility**: Through its configuration system and target switching capability, COIL enables code to be written once and compiled for anywhere.
+3. **Performance-First**: Every feature in COIL is designed with performance as the primary consideration, enabling optimizations that would be difficult to achieve in either high-level languages or pure assembly.
+
+4. **Direct Hardware Access**: COIL provides explicit mechanisms for accessing hardware-specific features while maintaining a consistent programming model.
+
+5. **Cross-Architecture Capability**: Through its configuration system and target switching capability, COIL enables code to be written once and compiled for multiple architectures.
 
 ## Key Features
 
 COIL differentiates itself from traditional assembly through several key abstractions:
 
-### 1. Variable Management System
+### 1. Virtual Register System
 
-COIL implements a variable system with types, alleviating the programmer from the burden of manual register and stack management. This allows the COIL optimizer to make intelligent decisions about register allocation and stack usage based on variable lifetimes, access patterns, and the capabilities of the target architecture.
+COIL introduces a virtual register abstraction layer that maps to physical registers according to the target architecture. This system provides:
 
-### 2. ABI and Function System
+- Consistent register naming across different architectures
+- Architecture-independent register allocation
+- Explicit control over register usage when needed
 
-Functions in COIL are first-class citizens with well-defined Application Binary Interfaces (ABIs) as specified in the configuration file. This enables seamless interoperability between functions compiled from different source languages or for different target architectures. The ABI system handles parameter passing, stack setup, and return value management automatically.
+Virtual registers are encoded as simple numeric identifiers in the binary format, with a mapping table that translates them to physical registers specific to each target architecture.
 
-### 3. Standard Library
+### 2. Variable Management System
 
-COIL includes a standard library that provides a unified interface for interacting with operating systems and hardware. This abstraction layer enables COIL code to run on bare metal for embedded systems and bootloaders, while also supporting applications that run on top of operating systems.
+COIL implements a lightweight variable system that tracks:
 
-### 4. Target System Switching
+- Variable lifetimes
+- Type information
+- Memory layout
+- Access patterns
 
-The configuration-driven target system allows switching the target architecture during assembly. This enables:
-- Generation of heterogeneous code (e.g., CPU and GPU code in the same program)
-- Creation of polyglot binaries that can run on multiple architectures
-- Support for mode transitions (e.g., transitioning from 16-bit real mode to 32-bit protected mode in an x86 bootloader)
+This system allows the COIL toolchain to make intelligent decisions about register allocation, spilling, and memory organization while maintaining the performance characteristics of direct register and memory access.
 
-### 5. Virtual Register System
+### 3. ABI and Function System
 
-COIL provides a virtual register abstraction using common names (R1, F1, V1, etc.) that map to physical registers according to the target configuration. This simplifies cross-platform development while maintaining the performance benefits of register-based computation. For more information about how a specific register maps check out reg.md where the format is specified.
+COIL provides explicit support for function declarations, calls, and parameter passing through architecture-specific ABIs. This system ensures:
+
+- Consistent function calling conventions
+- Efficient parameter passing
+- Interoperability with native code
+- Support for cross-architecture function calls
+
+### 4. Target Switching Mechanism
+
+COIL's unique target switching capability allows a single binary to contain code for multiple architectures or processing units. This enables:
+
+- Heterogeneous computing (CPU/GPU/specialized hardware)
+- Polyglot binaries compatible with multiple architectures
+- Mode transitions (e.g., x86 real mode to protected mode)
+- Optimal code selection based on available hardware features
+
+### 5. Configuration-Driven Architecture
+
+COIL uses detailed configuration blocks to specify the capabilities and constraints of target architectures. This system:
+
+- Documents available instruction sets and registers
+- Defines memory models and alignment requirements
+- Specifies ABI details for parameter passing and returns
+- Enables precise targeting of hardware-specific features
 
 ## COIL in the Toolchain
 
 COIL occupies a unique position in the development toolchain:
 
 ```
-High-Level Languages → (COF) COIL → (NOF) Machine Code -> (optional) COIL Linker
+High-Level Languages → (COF) COIL → (NOF) Machine Code → Optional COIL Linker
 ```
 
-COIL eliminates the need for target-specific assembly languages, providing a unified representation that can be directly translated to machine code for any supported architecture. It can be targeted by compiler frontends as an intermediate representation, or written directly by programmers who need low-level control with cross-platform capabilities.
+COIL can be targeted by:
+- Compiler backends as a replacement for assembly generation
+- Assembly language compilers
+- Hand-written assembly (through a COIL assembler)
 
-## Object Formats
+## Binary Format
 
-COIL utilizes two distinct object formats:
+COIL defines two binary formats:
 
-1. **COIL Object Format**: A rich intermediate format that preserves COIL's abstractions, enabling link-time optimization and cross-platform compatibility.
+1. **COIL Object Format (COF)**: A rich intermediate format that preserves COIL's abstractions, enabling cross-platform optimization.
 
-2. **Native Object Format**: A traditional like object format similar to ELF containing native machine code for multiple devices ready for final linking and execution by COIL compatible linkers.
+2. **Native Object Format (NOF)**: A specialized object format containing native machine code for multiple target architectures, designed for final linking and execution.
+
+## Implementation Requirements
+
+COIL assemblers and linkers must adhere to the "all feature implemented policy," meaning:
+
+- All operations defined in the COIL instruction set must be supported
+- Operations not directly supported by hardware must be emulated through inline expansion
+- Only operations that require operating system support (e.g., certain atomic operations) may be deferred to runtime libraries
+
+## Documentation Structure
+
+- [Instruction Set Architecture](isa.md) - Core instruction set and encoding
+- [Configuration System](conf.md) - Target architecture specification
+- [Register System](reg.md) - Virtual register mapping
+- [Variable System](vars.md) - Variable management and lifetime tracking
+- [ABI System](abi.md) - Function calling conventions and interfaces
+- [Object Formats](objects.md) - Binary format specifications
+- [Target Switching](target.md) - Cross-architecture execution
+- [ISA Extensions](isaext.md) - Instruction Set Extensions utilizing an operating system environment
 
 ## Use Cases
 
@@ -67,4 +120,4 @@ COIL is particularly well-suited for:
 - **Operating system development**: Including bootloaders and kernels
 - **Cross-platform libraries**: That need to run efficiently on multiple architectures
 - **High-performance computing**: Where squeezing every ounce of performance matters
-- **Heterogeneous computing**: Where code needs to run on both CPUs and accelerators (GPUs, FPGAs, etc.)
+- **Heterogeneous computing**: Where code needs to run on both CPUs and accelerators

@@ -512,7 +512,7 @@ typedef struct coil_conf {
   coil_execution_t execution;       /**< Execution resources configuration */
 
   /* ABI definitions */
-  // TODO
+  coil_abi_t abi;                   /**< ABI configuration */
 };
 
 /**
@@ -555,7 +555,7 @@ typedef struct coil_cpu {
   coil_execution_t execution;       /**< Execution resources configuration */
   
   /* ABI definitions */
-  // TODO
+  coil_abi_t abi;                   /**< ABI configuration */
 
   /* Basic identification */
   coil_cpu_arch_t arch;             /**< CPU architecture */
@@ -669,6 +669,149 @@ typedef struct coil_execution {
   uint32_t reorder_buffer_size;  /**< Size of the reorder buffer */
   uint32_t reservation_stations; /**< Number of reservation stations */
 } coil_execution_t;
+
+/**
+* @brief ABI Configuration
+* Defines the calling conventions and parameter passing mechanisms
+*/
+typedef struct coil_abi {
+  /* Basic identification */
+  uint32_t abi_id;               /**< Unique ABI identifier */
+  char name[64];                 /**< ABI name (e.g., "sysv", "ms", "aapcs") */
+  uint32_t version;              /**< ABI version number */
+  
+  /* Parameter passing */
+  uint8_t param_passing_model;   /**< Parameter passing model */
+  uint8_t return_value_model;    /**< Return value model */
+  uint8_t stack_alignment;       /**< Stack alignment requirement in bytes (power of 2) */
+  uint8_t stack_direction;       /**< Stack growth direction (0=down, 1=up) */
+  
+  /* Register usage for parameters */
+  uint8_t int_param_regs[8];     /**< Integer/pointer parameter registers */
+  uint8_t fp_param_regs[8];      /**< Floating-point parameter registers */
+  uint8_t vec_param_regs[8];     /**< Vector parameter registers */
+  
+  /* Return registers */
+  uint8_t int_return_regs[2];    /**< Integer/pointer return value registers */
+  uint8_t fp_return_regs[2];     /**< Floating-point return value registers */
+  uint8_t vec_return_regs[2];    /**< Vector return value registers */
+  
+  /* Register preservation */
+  uint32_t caller_preserved_regs; /**< Bit mask of caller-preserved registers */
+  uint32_t callee_preserved_regs; /**< Bit mask of callee-preserved registers */
+  
+  /* Name mangling */
+  uint8_t name_mangling_scheme;  /**< Name mangling scheme */
+  bool prepend_underscore;       /**< Whether to prepend underscore to symbol names */
+  
+  /* System calls */
+  uint8_t syscall_convention;    /**< System call convention */
+  uint8_t syscall_param_regs[8]; /**< System call parameter registers */
+  uint8_t syscall_return_reg;    /**< System call return register */
+  
+  /* Struct passing */
+  uint8_t struct_passing_method; /**< Method for passing structs */
+  bool return_struct_ptr;        /**< Whether to return structs via pointer */
+  uint32_t max_struct_by_value;  /**< Maximum size of struct passed by value */
+  
+  /* Stack handling */
+  bool red_zone;                 /**< Whether red zone is supported */
+  uint32_t red_zone_size;        /**< Size of red zone in bytes */
+  uint8_t stack_cleanup;         /**< Stack cleanup responsibility (0=caller, 1=callee) */
+  
+  /* Varargs handling */
+  uint8_t varargs_model;         /**< Variable arguments handling model */
+  uint8_t varargs_reg_save_area; /**< Register save area for varargs */
+  
+  /* Exception handling */
+  uint8_t exception_model;       /**< Exception handling model */
+  bool uses_dwarf;               /**< Whether DWARF unwinding is used */
+  
+  /* Thread-local storage */
+  uint8_t tls_model;             /**< Thread-local storage model */
+  
+  /* Extensions */
+  uint32_t extensions;           /**< ABI extensions bit mask */
+} coil_abi_t;
+
+/**
+* @brief ABI Parameter Passing Models
+*/
+enum coil_param_passing_model {
+  COIL_PARAM_MODEL_REGISTER_FIRST = 0, /**< Registers first, then stack */
+  COIL_PARAM_MODEL_STACK_ONLY = 1,    /**< All parameters on stack */
+  COIL_PARAM_MODEL_REGISTER_ONLY = 2, /**< Only use registers, error if too many params */
+  COIL_PARAM_MODEL_HYBRID = 3,        /**< Hybrid model with specific rules */
+};
+
+/**
+* @brief ABI Return Value Models
+*/
+enum coil_return_value_model {
+  COIL_RETURN_MODEL_REGISTER = 0,     /**< Return in registers */
+  COIL_RETURN_MODEL_STACK = 1,        /**< Return on stack */
+  COIL_RETURN_MODEL_POINTER = 2,      /**< Return via hidden pointer */
+  COIL_RETURN_MODEL_HYBRID = 3,       /**< Hybrid model with specific rules */
+};
+
+/**
+* @brief ABI Struct Passing Methods
+*/
+enum coil_struct_passing_method {
+  COIL_STRUCT_PASS_REGISTER = 0,      /**< Pass in registers when possible */
+  COIL_STRUCT_PASS_STACK = 1,         /**< Always pass on stack */
+  COIL_STRUCT_PASS_POINTER = 2,       /**< Pass pointer to struct */
+  COIL_STRUCT_PASS_SPLIT = 3,         /**< Split across registers when possible */
+};
+
+/**
+* @brief ABI Name Mangling Schemes
+*/
+enum coil_name_mangling_scheme {
+  COIL_MANGLE_NONE = 0,               /**< No name mangling */
+  COIL_MANGLE_C = 1,                  /**< C-style mangling (prepend underscore) */
+  COIL_MANGLE_CPP_GCC = 2,            /**< C++ GCC-style mangling */
+  COIL_MANGLE_CPP_MS = 3,             /**< C++ MSVC-style mangling */
+  COIL_MANGLE_RUST = 4,               /**< Rust-style mangling */
+  COIL_MANGLE_SWIFT = 5,              /**< Swift-style mangling */
+  COIL_MANGLE_CUSTOM = 6,             /**< Custom mangling scheme */
+};
+
+/**
+* @brief ABI System Call Conventions
+*/
+enum coil_syscall_convention {
+  COIL_SYSCALL_UNIX = 0,              /**< Unix-style system calls */
+  COIL_SYSCALL_WINDOWS = 1,           /**< Windows-style system calls */
+  COIL_SYSCALL_LINUX = 2,             /**< Linux-specific system calls */
+  COIL_SYSCALL_MACOS = 3,             /**< macOS-specific system calls */
+  COIL_SYSCALL_ARM = 4,               /**< ARM-specific system calls */
+  COIL_SYSCALL_CUSTOM = 5,            /**< Custom system call convention */
+};
+
+/**
+* @brief ABI Exception Handling Models
+*/
+enum coil_exception_model {
+  COIL_EXCEPTION_NONE = 0,            /**< No exception handling */
+  COIL_EXCEPTION_SJLJ = 1,            /**< Setjmp/longjmp-based exceptions */
+  COIL_EXCEPTION_DWARF = 2,           /**< DWARF-based exceptions */
+  COIL_EXCEPTION_SEH = 3,             /**< Windows SEH exceptions */
+  COIL_EXCEPTION_RUST = 4,            /**< Rust-style unwinding */
+  COIL_EXCEPTION_CUSTOM = 5,          /**< Custom exception model */
+};
+
+/**
+* @brief ABI Thread-Local Storage Models
+*/
+enum coil_tls_model {
+  COIL_TLS_NONE = 0,                  /**< No thread-local storage support */
+  COIL_TLS_GLOBAL_DYNAMIC = 1,        /**< Global dynamic TLS model */
+  COIL_TLS_LOCAL_DYNAMIC = 2,         /**< Local dynamic TLS model */
+  COIL_TLS_INITIAL_EXEC = 3,          /**< Initial exec TLS model */
+  COIL_TLS_LOCAL_EXEC = 4,            /**< Local exec TLS model */
+  COIL_TLS_CUSTOM = 5,                /**< Custom TLS model */
+};
 ```
 
 ## Conclusion

@@ -1,0 +1,6 @@
+# Configuration
+The configuration format is going to be complicated but for good reason. Configurations are separated for different processing units separated heirarchly for binary, analog, quantum into the specifc processing units of each one. No architecture specifics are actually mentioned in these configuration files just raw feature control. They can be automatically configured from instructions like CPUID by converting extensions into the raw feature control but this is not mentioned in the configuration files. The configuration is at its core a binary format with a way to interact with it via command line or via a COIL configuration decompiler and compiler to utilizing a text format.
+
+This configuration is in charge of specifying raw CPU features via bitmaps where it defines what types it can use and how then we move onto ABIs where it defines which ABIs it is aware of and the structure the ABI demands. After this we move onto just some simple information that could help like: resources (registers, threads, cache, ...), security, power, execution, performance, etc...
+
+This short list of the features to be implemented may sum up why this is such a big task. This is listed mainly for CPU configurations but in the future support for other processing units will be supported.

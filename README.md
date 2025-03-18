@@ -12,9 +12,7 @@ COIL embraces the following core principles:
 
 2. **Performance-First**: Every feature in COIL is designed with performance as the primary consideration, enabling optimizations that would be difficult to achieve in either high-level languages or pure assembly.
 
-3. **Programmer Flexibility**: COIL allows programmers to work at a level of abstraction appropriate for their task, dropping down to raw assembly when needed while benefiting from COIL's abstractions elsewhere.
-
-4. **Cross-Architecture Compatibility**: Through its configuration system and target switching capability, COIL enables code to be written once and run on multiple architectures.
+3. **Cross-Architecture Compatibility**: Through its configuration system and target switching capability, COIL enables code to be written once and compiled for anywhere.
 
 ## Key Features
 
@@ -41,14 +39,14 @@ The configuration-driven target system allows switching the target architecture 
 
 ### 5. Virtual Register System
 
-COIL provides a virtual register abstraction using common names (R1, F1, V1, etc.) that map to physical registers according to the target configuration. This simplifies cross-platform development while maintaining the performance benefits of register-based computation.
+COIL provides a virtual register abstraction using common names (R1, F1, V1, etc.) that map to physical registers according to the target configuration. This simplifies cross-platform development while maintaining the performance benefits of register-based computation. For more information about how a specific register maps check out reg.md where the format is specified.
 
 ## COIL in the Toolchain
 
 COIL occupies a unique position in the development toolchain:
 
 ```
-High-Level Languages → COIL → Machine Code
+High-Level Languages → (COF) COIL → (NOF) Machine Code -> (optional) COIL Linker
 ```
 
 COIL eliminates the need for target-specific assembly languages, providing a unified representation that can be directly translated to machine code for any supported architecture. It can be targeted by compiler frontends as an intermediate representation, or written directly by programmers who need low-level control with cross-platform capabilities.
@@ -59,9 +57,7 @@ COIL utilizes two distinct object formats:
 
 1. **COIL Object Format**: A rich intermediate format that preserves COIL's abstractions, enabling link-time optimization and cross-platform compatibility.
 
-2. **Native Object Format**: A traditional object format (e.g., ELF, PE, Mach-O) containing native machine code, ready for final linking and execution.
-
-The COIL toolchain includes translators to convert between these formats as appropriate for the target environment.
+2. **Native Object Format**: A traditional like object format similar to ELF containing native machine code for multiple devices ready for final linking and execution by COIL compatible linkers.
 
 ## Use Cases
 

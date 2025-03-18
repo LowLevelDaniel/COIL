@@ -25,1335 +25,650 @@ The COIL configuration consists of C-style structures and enums organized in hie
 4. **Register Definitions**: Register properties, aliases, and mappings
 5. **ABI Definitions**: Calling conventions for functions and system calls
 6. **Memory System**: Cache configurations and memory models
-7. **Target-Specific Extensions**: Specialized capabilities for different hardware
 
-## File Format
+## Format
+The configuration follows a hierarchy structure from base to processing unit.
+The base contains instructions global among all the (binary) processing units and the next layer provides instructions unique to each.
 
-COIL configuration files use a C-structure syntax with nested structures and explicit typing:
-
+### Enumerations
 ```c
 /**
- * @file coil_config.h
- * @brief COIL configuration for cross-architecture code generation
- * @version 1.0.0
- */
-
-#ifndef COIL_CONFIG_H
-#define COIL_CONFIG_H
-
-#include <stdbool.h>
-#include <stdint.h>
-
-/**
- * @brief Version information for the configuration structure
- */
-typedef struct coil_config_version {
-  uint8_t major;                   /**< Major version (incompatible changes) */
-  uint8_t minor;                   /**< Minor version (compatible additions) */
-  uint8_t patch;                   /**< Patch version (bug fixes) */
-} coil_config_version_t;
+* @brief Generic Binary Processing Unit Type
+* For future extension to support different processing unit types
+*/
+typedef enum coil_pu_type {
+  COIL_PU_CPU,                     /**< Central Processing Unit */
+  COIL_PU_GPU,                     /**< Graphics Processing Unit */
+  COIL_PU_DSP,                     /**< Digital Signal Processor */
+  COIL_PU_NPU,                     /**< Neural Processing Unit */
+  COIL_PU_TPU,                     /**< Tensor Processing Unit */
+  COIL_PU_FPGA,                    /**< Field-Programmable Gate Array */
+  COIL_PU_ASIC,                    /**< Application-Specific Integrated Circuit */
+} coil_pu_type_t;
 
 /**
- * @brief Current version of the COIL configuration structure
- */
-#define COIL_CONFIG_VERSION_MAJOR 1
-#define COIL_CONFIG_VERSION_MINOR 0
-#define COIL_CONFIG_VERSION_PATCH 0
-
-/**
- * @brief Supported CPU architectures
- */
+* @brief Supported CPU architectures
+*/
 typedef enum coil_cpu_arch {
-  COIL_CPU_ARCH_X86,           /**< x86 and x86-64 */
-  COIL_CPU_ARCH_ARM,           /**< ARM and ARM64 */
-  COIL_CPU_ARCH_RISCV,         /**< RISC-V */
-  COIL_CPU_ARCH_WASM,          /**< WebAssembly */
-  COIL_CPU_ARCH_GPU_CUDA,      /**< NVIDIA CUDA */
-  COIL_CPU_ARCH_GPU_OPENCL,    /**< OpenCL */
-  COIL_CPU_ARCH_GPU_VULKAN,    /**< Vulkan Compute */
-  COIL_CPU_ARCH_CUSTOM         /**< Custom architecture */
+  COIL_CPU_ARCH_X86,            /**< x86 and x86-64 */
+  COIL_CPU_ARCH_ARM,            /**< ARM and ARM64 */
+  COIL_CPU_ARCH_RISCV,          /**< RISC-V */
+  COIL_CPU_ARCH_POWERPC,        /**< PowerPC and POWER */
+  COIL_CPU_ARCH_MIPS,           /**< MIPS */
+  COIL_CPU_ARCH_SPARC,          /**< SPARC */
+  COIL_CPU_ARCH_WASM,           /**< WebAssembly */
+  COIL_CPU_ARCH_AVR,            /**< 8-bit AVR microcontroller */
+  COIL_CPU_ARCH_MSP430,         /**< 16-bit MSP430 microcontroller */
+  COIL_CPU_ARCH_S390X,          /**< IBM System Z (s390x) */
+  COIL_CPU_ARCH_XTENSA,         /**< Xtensa (ESP32, etc.) */
+  COIL_CPU_ARCH_ALPHA,          /**< DEC Alpha */
+  COIL_CPU_ARCH_ITANIUM,        /**< Intel Itanium (IA-64) */
+  COIL_CPU_ARCH_PARISC,         /**< HP PA-RISC */
+  COIL_CPU_ARCH_HEXAGON         /**< Qualcomm Hexagon */
 } coil_cpu_arch_t;
 
 /**
- * @brief Register types available in CPUs
- */
-typedef enum coil_reg_type {
-  COIL_REG_GP,      /**< General purpose registers */
-  COIL_REG_FP,      /**< Floating point registers */
-  COIL_REG_VEC,     /**< Vector registers */
-  COIL_REG_FLAG,    /**< Flag registers */
-  COIL_REG_PC,      /**< Program counter */
-  COIL_REG_SP,      /**< Stack pointer */
-  COIL_REG_FP_PTR,  /**< Frame pointer */
-  COIL_REG_LR,      /**< Link register */
-  COIL_REG_SPECIAL  /**< Special purpose registers */
-} coil_reg_type_t;
+* @brief Register types available in CPUs
+*/
+typedef enum coil_cpu_reg : uint8_t {
+  ISA_CPU_REG_GP = 0x01,      /**< General purpose registers */
+  ISA_CPU_REG_FP = 0x02,      /**< Floating point registers */
+  ISA_CPU_REG_VEC = 0x03,     /**< Vector registers */
+  ISA_CPU_REG_FLAG = 0x04,    /**< Flag registers */
+  ISA_CPU_REG_SEG = 0x05,     /**< Segment registers */
+  ISA_CPU_REG_PC = 0x06,      /**< Program counter */
+  ISA_CPU_REG_SP = 0x07,      /**< Stack pointer */
+  ISA_CPU_REG_LR = 0x08,      /**< Link register */
+  ISA_CPU_REG_PRED = 0x09,    /**< Predicate registers */
+  ISA_CPU_REG_SPECIAL = 0x0A, /**< Special-purpose registers */
+  ISA_CPU_REG_SYSTEM = 0x0B,  /**< System/control registers */
+  ISA_CPU_REG_DEBUG = 0x0C,   /**< Debug registers */
+  ISA_CPU_REG_MASK = 0x0D,    /**< Mask registers (for vector operations) */
+  ISA_CPU_REG_ACC = 0x0E      /**< Accumulator registers */
+} coil_cpu_reg_t;
 
 /**
- * @brief Endianness types
- */
-typedef enum coil_endianness {
-  COIL_ENDIAN_LITTLE,          /**< Little-endian byte order */
-  COIL_ENDIAN_BIG,             /**< Big-endian byte order */
-  COIL_ENDIAN_BI               /**< Bi-endian (configurable) */
-} coil_endianness_t;
+* @brief All Types Instructions Capabilities
+* Represents fundamental operations applicable to all data types at assembly level
+*/
+typedef enum coil_type_instr {
+  // Basic Arithmetic
+  ISA_TYPE_ADD = (1 << 0),        /**< Addition */
+  ISA_TYPE_SUB = (1 << 1),        /**< Subtraction */
+  ISA_TYPE_MUL = (1 << 2),        /**< Multiplication */
+  ISA_TYPE_DIV = (1 << 3),        /**< Division */
+  ISA_TYPE_REM = (1 << 4),        /**< Remainder (modulo) */
+  ISA_TYPE_NEG = (1 << 5),        /**< Negation */
+
+  // Flag Operations
+  ISA_TYPE_CMP  = (1 << 6),       /**< Compare (subtract without change) */
+  ISA_TYPE_TEST = (1 << 7),       /**< Test (and without change) */
+
+  // Memory Operations
+  ISA_TYPE_MOV = (1 << 8),        /**< Move/copy operations */
+  ISA_TYPE_PUSH = (1 << 9),       /**< Push to stack */
+  ISA_TYPE_POP = (1 << 10),       /**< Pop from stack */
+  ISA_TYPE_LOAD = (1 << 11),      /**< Load from memory */
+  ISA_TYPE_STORE = (1 << 12),     /**< Store to memory */
+  ISA_TYPE_PREFETCH = (1 << 13),  /**< Prefetch memory */
+  ISA_TYPE_EXCHANGE = (1 << 14),  /**< Exchange/swap values */
+  
+  // Logical Operations
+  ISA_TYPE_AND = (1 << 15),       /**< Bitwise AND */
+  ISA_TYPE_OR = (1 << 16),        /**< Bitwise OR */
+  ISA_TYPE_XOR = (1 << 17),       /**< Bitwise XOR */
+  ISA_TYPE_NOT = (1 << 18),       /**< Bitwise NOT */
+  
+  // Shifts and Rotations
+  ISA_TYPE_SHL = (1 << 19),       /**< Shift left logical */
+  ISA_TYPE_SHR = (1 << 20),       /**< Shift right logical */
+  ISA_TYPE_SAR = (1 << 21),       /**< Shift arithmetic right (sign preserving) */
+  ISA_TYPE_ROL = (1 << 22),       /**< Rotate left */
+  ISA_TYPE_ROR = (1 << 23),       /**< Rotate right */
+  ISA_TYPE_RCL = (1 << 24),       /**< Rotate left through carry */
+  ISA_TYPE_RCR = (1 << 25),       /**< Rotate right through carry */
+  
+  // Atomic Operations
+  ISA_TYPE_ATOMIC_ADD = (1 << 26), /**< Atomic addition */
+  ISA_TYPE_ATOMIC_SUB = (1 << 27), /**< Atomic subtraction */
+  ISA_TYPE_ATOMIC_AND = (1 << 28), /**< Atomic AND */
+  ISA_TYPE_ATOMIC_OR = (1 << 29),  /**< Atomic OR */
+  ISA_TYPE_ATOMIC_XOR = (1 << 30), /**< Atomic XOR */
+  ISA_TYPE_ATOMIC_XCHG = (1ULL << 31), /**< Atomic exchange */
+  ISA_TYPE_ATOMIC_CAS = (1ULL << 32), /**< Atomic compare-and-swap */
+  
+  // Bit Manipulation (applicable to any binary representation)
+  ISA_TYPE_BIT_SET = (1ULL << 33),  /**< Set bit */
+  ISA_TYPE_BIT_CLR = (1ULL << 34),  /**< Clear bit */
+  ISA_TYPE_BIT_TST = (1ULL << 35),  /**< Test bit */
+  ISA_TYPE_BIT_TGL = (1ULL << 36),  /**< Toggle bit */
+  
+  // Extension/Truncation
+  ISA_TYPE_SIGN_EXTEND = (1ULL << 37), /**< Sign extension */
+  ISA_TYPE_ZERO_EXTEND = (1ULL << 38), /**< Zero extension */
+  ISA_TYPE_TRUNCATE = (1ULL << 39),    /**< Truncation */
+  
+  // Miscellaneous
+  ISA_TYPE_ABS = (1ULL << 40),    /**< Absolute value */
+  ISA_TYPE_MIN = (1ULL << 41),    /**< Minimum of two values */
+  ISA_TYPE_MAX = (1ULL << 42),    /**< Maximum of two values */
+  ISA_TYPE_ZERO = (1ULL << 43),   /**< Zero/clear operation */
+  
+  // Extension operations (register pair operations)
+  ISA_TYPE_WIDE_MUL = (1ULL << 44), /**< Wide multiplication (double width result) */
+  ISA_TYPE_WIDE_DIV = (1ULL << 45), /**< Wide division (double width dividend) */
+} coil_type_instr_t;
 
 /**
- * @brief Register descriptor
- */
-typedef struct coil_reg {
-  coil_reg_type_t type;           /**< Type of register */
-  uint16_t index;                 /**< Index of the register within its type */
-  char name[16];                  /**< Name of the register (e.g., "rax", "r0") */
-  uint16_t size;                  /**< Size of the register in bits */
-  bool reserved;                  /**< Whether this register is reserved */
-  bool partial_access;            /**< Whether parts of register can be accessed */
-  uint32_t partial_sizes;         /**< Bitfield of accessible sub-register sizes */
-} coil_reg_t;
+* @brief Integer Specific Instructions
+* Operations applicable only to integer types at assembly level
+*/
+typedef enum coil_int_instr {
+  // Extended Arithmetic
+  ISA_INT_ADDC = (1 << 0),        /**< Add with carry */
+  ISA_INT_SUBB = (1 << 1),        /**< Subtract with borrow */
+  ISA_INT_IMUL = (1 << 2),        /**< Signed multiplication */
+  ISA_INT_IDIV = (1 << 3),        /**< Signed division */
+  ISA_INT_IREM = (1 << 4),        /**< Signed remainder */
+  
+  // Bit Counting
+  ISA_INT_CLZ = (1 << 5),         /**< Count leading zeros */
+  ISA_INT_CTZ = (1 << 6),         /**< Count trailing zeros */
+  ISA_INT_POPCNT = (1 << 7),      /**< Population count (count set bits) */
+  ISA_INT_PARITY = (1 << 8),      /**< Parity check */
+  
+  // Endian Operations
+  ISA_INT_BSWAP = (1 << 9),       /**< Byte swap (endian conversion) */
+  ISA_INT_BITREV = (1 << 10),     /**< Bit reverse */
+  
+  // Bit Field Operations
+  ISA_INT_BIT_FIELD_EXTRACT = (1 << 11), /**< Extract bit field */
+  ISA_INT_BIT_FIELD_INSERT = (1 << 12),  /**< Insert bit field */
+  
+  // Extended Operations
+  ISA_INT_MULH = (1 << 13),       /**< Return high part of multiplication */
+  ISA_INT_MULHU = (1 << 14),      /**< Return high part of unsigned multiplication */
+  ISA_INT_MULHS = (1 << 15),      /**< Return high part of signed multiplication */
+  
+  // Saturation Operations
+  ISA_INT_ADDS = (1 << 16),       /**< Saturating addition */
+  ISA_INT_SUBS = (1 << 17),       /**< Saturating subtraction */
+  ISA_INT_MULS = (1 << 18),       /**< Saturating multiplication */
+  
+  // BCD Operations
+  ISA_INT_BCD_ADJUST = (1 << 19), /**< BCD adjustment */
+  ISA_INT_DAA = (1 << 20),        /**< Decimal adjust after addition */
+  ISA_INT_DAS = (1 << 21),        /**< Decimal adjust after subtraction */
+  
+  // Fixed-Point Operations
+  ISA_INT_FIXED_MUL = (1 << 22),  /**< Fixed-point multiply */
+  ISA_INT_FIXED_DIV = (1 << 23),  /**< Fixed-point divide */
+} coil_int_instr_t;
 
 /**
- * @brief Register alias descriptor
- */
-typedef struct coil_reg_alias {
-  char alias[16];                /**< Alias name */
-  char target[16];               /**< Target register name */
-  uint8_t start_bit;             /**< Starting bit for partial register */
-  uint8_t end_bit;               /**< Ending bit for partial register */
-} coil_reg_alias_t;
+* @brief Float Specific Instructions
+* Operations applicable only to floating-point types at assembly level
+*/
+typedef enum coil_fp_instr {
+  // Status Flags & Classification
+  ISA_FP_STATUS_FLAGS = (1 << 0),  /**< Support for floating-point status flags */
+  ISA_FP_CLASSIFY = (1 << 1),      /**< Classify floating point number */
+  
+  // Rounding Control
+  ISA_FP_ROUNDING_CONTROL = (1 << 2), /**< Support for rounding mode control */
+  
+  // Precision Control
+  ISA_FP_PRECISION_CONVERT = (1 << 3), /**< Convert between floating-point precisions */
+  ISA_FP_INT_TO_FP = (1 << 4),     /**< Convert integer to floating-point */
+  ISA_FP_FP_TO_INT = (1 << 5),     /**< Convert floating-point to integer */
+  
+  // Basic Operations
+  ISA_FP_SQRT = (1 << 6),         /**< Square root */
+  ISA_FP_RCP = (1 << 7),          /**< Reciprocal */
+  ISA_FP_RSQRT = (1 << 8),        /**< Reciprocal square root */
+  
+  // Fused Operations
+  ISA_FP_FMA = (1 << 9),          /**< Fused multiply-add */
+  ISA_FP_FMS = (1 << 10),         /**< Fused multiply-subtract */
+  ISA_FP_FNMA = (1 << 11),        /**< Fused negate-multiply-add */
+  ISA_FP_FNMS = (1 << 12),        /**< Fused negate-multiply-subtract */
+  
+  // Exact Rounding Ops
+  ISA_FP_ROUND = (1 << 13),       /**< Round to integer */
+  ISA_FP_TRUNC = (1 << 14),       /**< Truncate to integer (round toward zero) */
+  ISA_FP_FLOOR = (1 << 15),       /**< Floor (round down) */
+  ISA_FP_CEIL = (1 << 16),        /**< Ceiling (round up) */
+  
+  // Extended Ops with Hardware Acceleration
+  ISA_FP_SIN = (1 << 17),         /**< Sine */
+  ISA_FP_COS = (1 << 18),         /**< Cosine */
+  ISA_FP_TAN = (1 << 19),         /**< Tangent */
+  ISA_FP_LOG = (1 << 20),         /**< Logarithm */
+  ISA_FP_LOG2 = (1 << 21),        /**< Base-2 logarithm */
+  ISA_FP_LOG10 = (1 << 22),       /**< Base-10 logarithm */
+  ISA_FP_EXP = (1 << 23),         /**< Exponential */
+  ISA_FP_EXP2 = (1 << 24),        /**< Base-2 exponential */
+  ISA_FP_POW = (1 << 25),         /**< Power function */
+  
+  // Component Extraction
+  ISA_FP_EXTRACT_EXP = (1 << 26), /**< Extract exponent */
+  ISA_FP_EXTRACT_MANT = (1 << 27), /**< Extract mantissa */
+  ISA_FP_SCALEF = (1 << 28),      /**< Scale by power of 2 */
+  
+  // Sign Manipulation
+  ISA_FP_COPY_SIGN = (1 << 29),   /**< Copy sign from one value to another */
+  
+  // Exception Handling
+  ISA_FP_EXCEPTION_CONTROL = (1 << 30), /**< Control floating-point exceptions */
+} coil_fp_instr_t;
 
 /**
- * @brief Integer instruction capabilities - Part 1
- */
-typedef enum coil_instr_int_1 {
-  /* Basic arithmetic */
-  COIL_INSTR_INT_ADD              = (1ULL << 0),  /**< Addition */
-  COIL_INSTR_INT_SUB              = (1ULL << 1),  /**< Subtraction */
-  COIL_INSTR_INT_MUL              = (1ULL << 2),  /**< Multiplication */
-  COIL_INSTR_INT_DIV              = (1ULL << 3),  /**< Division */
-  COIL_INSTR_INT_REM              = (1ULL << 4),  /**< Remainder/Modulo */
-  COIL_INSTR_INT_NEG              = (1ULL << 5),  /**< Negation */
+* @brief Vector Specific Instructions
+* Operations applicable only to vector types at assembly level
+*/
+typedef enum coil_vec_instr {
+  // Data Movement
+  ISA_VEC_PERMUTE = (1 << 0),     /**< Vector permute/shuffle elements */
+  ISA_VEC_EXTRACT = (1 << 1),     /**< Extract element from vector */
+  ISA_VEC_INSERT = (1 << 2),      /**< Insert element into vector */
+  ISA_VEC_BROADCAST = (1 << 3),   /**< Broadcast scalar to all elements */
   
-  /* Bitwise operations */
-  COIL_INSTR_INT_AND              = (1ULL << 6),  /**< Bitwise AND */
-  COIL_INSTR_INT_OR               = (1ULL << 7),  /**< Bitwise OR */
-  COIL_INSTR_INT_XOR              = (1ULL << 8),  /**< Bitwise XOR */
-  COIL_INSTR_INT_NOT              = (1ULL << 9),  /**< Bitwise NOT */
+  // Element Conversion
+  ISA_VEC_PACK = (1 << 4),        /**< Pack elements with saturation */
+  ISA_VEC_UNPACK = (1 << 5),      /**< Unpack/expand elements */
   
-  /* Shifts and rotates */
-  COIL_INSTR_INT_SHL              = (1ULL << 10), /**< Shift left logical */
-  COIL_INSTR_INT_SHR              = (1ULL << 11), /**< Shift right logical */
-  COIL_INSTR_INT_SAR              = (1ULL << 12), /**< Shift right arithmetic */
-  COIL_INSTR_INT_ROL              = (1ULL << 13), /**< Rotate left */
-  COIL_INSTR_INT_ROR              = (1ULL << 14), /**< Rotate right */
+  // Lane Operations
+  ISA_VEC_LANE_CROSSING = (1 << 6), /**< Support for operations across lanes */
+  ISA_VEC_BLEND = (1 << 7),       /**< Blend/select between vectors */
   
-  /* Bit manipulation */
-  COIL_INSTR_INT_BIT_TEST         = (1ULL << 15), /**< Test bit */
-  COIL_INSTR_INT_BIT_SET          = (1ULL << 16), /**< Set bit */
-  COIL_INSTR_INT_BIT_CLR          = (1ULL << 17), /**< Clear bit */
-  COIL_INSTR_INT_POPCOUNT         = (1ULL << 18), /**< Population count */
-  COIL_INSTR_INT_CLZ              = (1ULL << 19), /**< Count leading zeros */
-  COIL_INSTR_INT_CTZ              = (1ULL << 20), /**< Count trailing zeros */
+  // Reduction Operations
+  ISA_VEC_HORIZONTAL_ADD = (1 << 8), /**< Horizontal addition */
+  ISA_VEC_HORIZONTAL_SUB = (1 << 9), /**< Horizontal subtraction */
+  ISA_VEC_HORIZONTAL_MUL = (1 << 10), /**< Horizontal multiplication */
   
-  /* Memory operations */
-  COIL_INSTR_INT_LOAD             = (1ULL << 21), /**< Load from memory */
-  COIL_INSTR_INT_STORE            = (1ULL << 22), /**< Store to memory */
-  COIL_INSTR_INT_MOVE             = (1ULL << 23), /**< Move register to register */
+  // Dot Products
+  ISA_VEC_DOT_PRODUCT = (1 << 11), /**< Dot product */
   
-  /* Advanced operations */
-  COIL_INSTR_INT_ADDC             = (1ULL << 24), /**< Add with carry */
-  COIL_INSTR_INT_SUBC             = (1ULL << 25), /**< Subtract with carry */
-  COIL_INSTR_INT_MULH             = (1ULL << 26), /**< Multiply high */
-  COIL_INSTR_INT_MULHU            = (1ULL << 27), /**< Multiply high unsigned */
-  COIL_INSTR_INT_MULHSU           = (1ULL << 28), /**< Multiply high signed-unsigned */
+  // Masking
+  ISA_VEC_MASK_OPERATIONS = (1 << 12), /**< Masked vector operations */
+  ISA_VEC_COMPRESS = (1 << 13),   /**< Compress vector using mask */
+  ISA_VEC_EXPAND = (1 << 14),     /**< Expand vector using mask */
   
-  /* Comparison */
-  COIL_INSTR_INT_CMP              = (1ULL << 29), /**< Compare */
-  COIL_INSTR_INT_TEST             = (1ULL << 30), /**< Test (AND without storing) */
-  COIL_INSTR_INT_MIN              = (1ULL << 31), /**< Minimum */
-  COIL_INSTR_INT_MAX              = (1ULL << 32), /**< Maximum */
-  COIL_INSTR_INT_CMOV             = (1ULL << 33), /**< Conditional move */
+  // Memory Operations
+  ISA_VEC_GATHER = (1 << 15),     /**< Gather (indexed load) */
+  ISA_VEC_SCATTER = (1 << 16),    /**< Scatter (indexed store) */
   
-  /* Atomic operations */
-  COIL_INSTR_INT_ATOMIC_ADD       = (1ULL << 34), /**< Atomic add */
-  COIL_INSTR_INT_ATOMIC_SUB       = (1ULL << 35), /**< Atomic subtract */
-  COIL_INSTR_INT_ATOMIC_AND       = (1ULL << 36), /**< Atomic AND */
-  COIL_INSTR_INT_ATOMIC_OR        = (1ULL << 37), /**< Atomic OR */
-  COIL_INSTR_INT_ATOMIC_XOR       = (1ULL << 38), /**< Atomic XOR */
-  COIL_INSTR_INT_ATOMIC_XCHG      = (1ULL << 39), /**< Atomic exchange */
-  COIL_INSTR_INT_ATOMIC_CMPXCHG   = (1ULL << 40), /**< Atomic compare-exchange */
+  // Math
+  ISA_VEC_SQRT = (1 << 17),       /**< Vector square root */
+  ISA_VEC_FMA = (1 << 18),        /**< Vector fused multiply-add */
   
-  /* Stack operations */
-  COIL_INSTR_INT_PUSH             = (1ULL << 41), /**< Push to stack */
-  COIL_INSTR_INT_POP              = (1ULL << 42), /**< Pop from stack */
+  // Comparison & Selection
+  ISA_VEC_COMPARE = (1 << 19),    /**< Vector compare to mask */
+  ISA_VEC_SELECT = (1 << 20),     /**< Select using mask */
   
-  /* Miscellaneous */
-  COIL_INSTR_INT_BYTE_SWAP        = (1ULL << 43), /**< Byte swap */
-} coil_instr_int_1_t;
+  // Cross-Lane Ops
+  ISA_VEC_SHIFT_ELEMENTS = (1 << 21), /**< Shift vector elements */
+  ISA_VEC_TABLE_LOOKUP = (1 << 22),   /**< Table lookup */
+  
+  // Advanced Bit Manipulation
+  ISA_VEC_BITWISE_SELECT = (1 << 23), /**< Bitwise select */
+  
+  // Special Types
+  ISA_VEC_INT8 = (1 << 24),      /**< 8-bit integer vector element support */
+  ISA_VEC_INT16 = (1 << 25),     /**< 16-bit integer vector element support */
+  ISA_VEC_INT32 = (1 << 26),     /**< 32-bit integer vector element support */
+  ISA_VEC_INT64 = (1 << 27),     /**< 64-bit integer vector element support */
+  ISA_VEC_FP16 = (1 << 28),      /**< Half-precision floating-point vector support */
+  ISA_VEC_FP32 = (1 << 29),      /**< Single-precision floating-point vector support */
+  ISA_VEC_FP64 = (1 << 30),      /**< Double-precision floating-point vector support */
+} coil_vec_instr_t;
 
 /**
- * @brief Floating-point instruction capabilities
- */
-typedef enum coil_instr_fp {
-  /* Basic floating point */
-  COIL_INSTR_FP_ADD           = (1ULL << 0),  /**< FP addition */
-  COIL_INSTR_FP_SUB           = (1ULL << 1),  /**< FP subtraction */
-  COIL_INSTR_FP_MUL           = (1ULL << 2),  /**< FP multiplication */
-  COIL_INSTR_FP_DIV           = (1ULL << 3),  /**< FP division */
-  COIL_INSTR_FP_NEG           = (1ULL << 4),  /**< FP negation */
-  COIL_INSTR_FP_ABS           = (1ULL << 5),  /**< FP absolute value */
-  COIL_INSTR_FP_SQRT          = (1ULL << 6),  /**< FP square root */
+* @brief Processing Unit Instructions
+*
+* Core control flow instructions common to most binary processing units
+*/
+typedef enum coil_instr {
+  /* Unconditional Control Flow */
+  ISA_CF_BR = (1 << 0),          /**< Direct branch */
+  ISA_CF_BR_IND = (1 << 1),      /**< Indirect branch */
+  ISA_CF_CALL = (1 << 2),        /**< Function call */
+  ISA_CF_RET = (1 << 3),         /**< Return from function */
+  ISA_CF_TRAP = (1 << 4),        /**< Trap/system call */
+  ISA_CF_INT = (1 << 5),         /**< Software interrupt */
+  ISA_CF_IRET = (1 << 6),        /**< Return from interrupt */
   
-  /* Advanced floating point */
-  COIL_INSTR_FP_FMA           = (1ULL << 7),  /**< FP fused multiply-add */
-  COIL_INSTR_FP_FMS           = (1ULL << 8),  /**< FP fused multiply-subtract */
-  COIL_INSTR_FP_CMP           = (1ULL << 9),  /**< FP compare */
-  COIL_INSTR_FP_MIN           = (1ULL << 10), /**< FP minimum */
-  COIL_INSTR_FP_MAX           = (1ULL << 11), /**< FP maximum */
+  /* Conditional Control Flow */
+  ISA_CF_BR_EQ = (1 << 7),       /**< Branch if equal */
+  ISA_CF_BR_NE = (1 << 8),       /**< Branch if not equal */
+  ISA_CF_BR_LT = (1 << 9),       /**< Branch if less than */
+  ISA_CF_BR_LE = (1 << 10),      /**< Branch if less than or equal */
+  ISA_CF_BR_GT = (1 << 11),      /**< Branch if greater than */
+  ISA_CF_BR_GE = (1 << 12),      /**< Branch if greater than or equal */
+  ISA_CF_BR_CARRY = (1 << 13),   /**< Branch if carry */
+  ISA_CF_BR_OFLOW = (1 << 14),   /**< Branch if overflow */
+  ISA_CF_BR_ZERO = (1 << 15),    /**< Branch if zero */
+  ISA_CF_BR_NEG = (1 << 16),     /**< Branch if negative */
+  ISA_CF_BR_POS = (1 << 17),     /**< Branch if positive */
   
-  /* Conversion */
-  COIL_INSTR_FP_INT_TO_FP     = (1ULL << 12), /**< Integer to FP conversion */
-  COIL_INSTR_FP_FP_TO_INT     = (1ULL << 13), /**< FP to integer conversion */
-  COIL_INSTR_FP_ROUND         = (1ULL << 14), /**< FP rounding */
-  COIL_INSTR_FP_TRUNC         = (1ULL << 15), /**< FP truncation */
-  COIL_INSTR_FP_CEIL          = (1ULL << 16), /**< FP ceiling */
-  COIL_INSTR_FP_FLOOR         = (1ULL << 17), /**< FP floor */
+  /* Memory Barrier/Synchronization */
+  ISA_CF_FENCE = (1 << 18),      /**< Memory fence */
+  ISA_CF_MFENCE = (1 << 19),     /**< Memory fence */
+  ISA_CF_LFENCE = (1 << 20),     /**< Load fence */
+  ISA_CF_SFENCE = (1 << 21),     /**< Store fence */
+  ISA_CF_LOCK = (1 << 22),       /**< Lock prefix for atomic operations */
   
-  /* Memory operations */
-  COIL_INSTR_FP_LOAD          = (1ULL << 18), /**< Load from memory */
-  COIL_INSTR_FP_STORE         = (1ULL << 19), /**< Store to memory */
-  COIL_INSTR_FP_MOVE          = (1ULL << 20), /**< Move register to register */
-} coil_instr_fp_t;
+  /* Execution Control */
+  ISA_CF_NOP = (1 << 23),        /**< No operation */
+  ISA_CF_HALT = (1 << 24),       /**< Halt processor */
+  ISA_CF_WAIT = (1 << 25),       /**< Wait state */
+  ISA_CF_PAUSE = (1 << 26),      /**< Pause (for spin-wait loops) */
+  
+  /* Predicated Execution */
+  ISA_CF_PREDICATION = (1 << 27), /**< Support for predicated execution */
+  
+  /* Atomic Execution */
+  ISA_CF_ATOMIC_BLOCK = (1 << 28), /**< Support for atomic execution blocks */
+  
+  /* Jump Table Support */
+  ISA_CF_JUMP_TABLE = (1 << 29),   /**< Support for jump tables */
+} coil_instr_t;
 
 /**
- * @brief SIMD/Vector instruction capabilities
- */
-typedef enum coil_instr_vector {
-  /* Vector basics */
-  COIL_INSTR_VEC_ADD          = (1ULL << 0),  /**< Vector add */
-  COIL_INSTR_VEC_SUB          = (1ULL << 1),  /**< Vector subtract */
-  COIL_INSTR_VEC_MUL          = (1ULL << 2),  /**< Vector multiply */
-  COIL_INSTR_VEC_DIV          = (1ULL << 3),  /**< Vector divide */
-  COIL_INSTR_VEC_ABS          = (1ULL << 4),  /**< Vector absolute value */
-  COIL_INSTR_VEC_NEG          = (1ULL << 5),  /**< Vector negate */
+* @brief CPU Specific Instructions
+* Instructions only applicable to CPUs, not general binary processing units
+*/
+typedef enum coil_cpu_instr {
+  /* System Identification */
+  ISA_CPU_CPUID = (1 << 0),      /**< Get CPU identification */
+  ISA_CPU_RDTSC = (1 << 1),      /**< Read time-stamp counter */
   
-  /* Vector bitwise */
-  COIL_INSTR_VEC_AND          = (1ULL << 6),  /**< Vector AND */
-  COIL_INSTR_VEC_OR           = (1ULL << 7),  /**< Vector OR */
-  COIL_INSTR_VEC_XOR          = (1ULL << 8),  /**< Vector XOR */
-  COIL_INSTR_VEC_NOT          = (1ULL << 9),  /**< Vector NOT */
+  /* System Registers */
+  ISA_CPU_RDMSR = (1 << 2),      /**< Read model-specific register */
+  ISA_CPU_WRMSR = (1 << 3),      /**< Write model-specific register */
   
-  /* Vector advanced arithmetic */
-  COIL_INSTR_VEC_FMA          = (1ULL << 10), /**< Vector fused multiply-add */
-  COIL_INSTR_VEC_DOT          = (1ULL << 11), /**< Vector dot product */
+  /* Cache Control */
+  ISA_CPU_CACHE_CONTROL = (1 << 4), /**< Cache control operations */
+  ISA_CPU_PREFETCH = (1 << 5),      /**< Prefetch data */
+  ISA_CPU_CLFLUSH = (1 << 6),       /**< Cache line flush */
+  ISA_CPU_INVD = (1 << 7),          /**< Invalidate cache */
+  ISA_CPU_WBINVD = (1 << 8),        /**< Write back and invalidate cache */
   
-  /* Vector comparison */
-  COIL_INSTR_VEC_CMP          = (1ULL << 12), /**< Vector compare */
-  COIL_INSTR_VEC_MIN          = (1ULL << 13), /**< Vector minimum */
-  COIL_INSTR_VEC_MAX          = (1ULL << 14), /**< Vector maximum */
+  /* Memory Management */
+  ISA_CPU_TLB_CONTROL = (1 << 9),  /**< TLB control operations */
+  ISA_CPU_INVLPG = (1 << 10),      /**< Invalidate TLB entry */
   
-  /* Vector manipulation */
-  COIL_INSTR_VEC_SHUFFLE      = (1ULL << 15), /**< Vector shuffle */
-  COIL_INSTR_VEC_EXTRACT      = (1ULL << 16), /**< Vector extract element */
-  COIL_INSTR_VEC_INSERT       = (1ULL << 17), /**< Vector insert element */
+  /* System Management */
+  ISA_CPU_SMM = (1 << 11),         /**< System Management Mode operations */
+  ISA_CPU_HLT = (1 << 12),         /**< Halt until interrupt */
+  ISA_CPU_RSM = (1 << 13),         /**< Resume from system management mode */
   
-  /* Memory operations */
-  COIL_INSTR_VEC_LOAD         = (1ULL << 18), /**< Vector load */
-  COIL_INSTR_VEC_STORE        = (1ULL << 19), /**< Vector store */
-  COIL_INSTR_VEC_GATHER       = (1ULL << 20), /**< Vector gather */
-  COIL_INSTR_VEC_SCATTER      = (1ULL << 21), /**< Vector scatter */
-} coil_instr_vector_t;
+  /* Fast System Calls */
+  ISA_CPU_FAST_SYSCALL = (1 << 14), /**< Fast system call operations */
+  ISA_CPU_SYSENTER = (1 << 15),     /**< Fast system call entry */
+  ISA_CPU_SYSEXIT = (1 << 16),      /**< Fast system call exit */
+  
+  /* Performance Monitoring */
+  ISA_CPU_PMC = (1 << 17),         /**< Performance-monitoring counter operations */
+  ISA_CPU_RDPMC = (1 << 18),       /**< Read performance-monitoring counter */
+  
+  /* Virtualization */
+  ISA_CPU_VIRT = (1 << 19),        /**< Virtualization support */
+  ISA_CPU_VMXON = (1 << 20),       /**< Enter VMX operation */
+  ISA_CPU_VMXOFF = (1 << 21),      /**< Exit VMX operation */
+  ISA_CPU_VMRUN = (1 << 22),       /**< Run virtual machine */
+  ISA_CPU_VMEXIT = (1 << 23),      /**< Exit from virtual machine */
+  
+  /* Power Management */
+  ISA_CPU_POWERMGMT = (1 << 24),   /**< Power management operations */
+  ISA_CPU_MONITOR = (1 << 25),     /**< Monitor address range */
+  ISA_CPU_MWAIT = (1 << 26),       /**< Wait until monitored address changes */
+  
+  /* Security Features */
+  ISA_CPU_RANDOM = (1 << 27),      /**< Hardware random number generation */
+  ISA_CPU_RDRAND = (1 << 28),      /**< Read random number */
+  ISA_CPU_RDSEED = (1 << 29),      /**< Read random seed */
+  ISA_CPU_ENCR = (1 << 30),        /**< Hardware encryption support */
+  ISA_CPU_AES = (1ULL << 31),      /**< AES instruction support */
+  ISA_CPU_SHA = (1ULL << 32),      /**< SHA instruction support */
+  
+  /* Trusted Execution */
+  ISA_CPU_TRUSTED_EXEC = (1ULL << 33), /**< Trusted execution support */
+  ISA_CPU_SGX = (1ULL << 34),      /**< Software Guard Extensions */
+  ISA_CPU_SME = (1ULL << 35),      /**< Secure Memory Encryption */
+} coil_cpu_instr_t;
 
 /**
- * @brief Control flow instruction capabilities
- */
-typedef enum coil_instr_control_flow {
-  /* Basic control flow */
-  COIL_INSTR_CF_BRANCH        = (1ULL << 0),  /**< Branch/jump */
-  COIL_INSTR_CF_BRANCH_COND   = (1ULL << 1),  /**< Conditional branch */
-  COIL_INSTR_CF_CALL          = (1ULL << 2),  /**< Call subroutine */
-  COIL_INSTR_CF_RET           = (1ULL << 3),  /**< Return from subroutine */
-  COIL_INSTR_CF_JUMP_REG      = (1ULL << 4),  /**< Jump to register */
+* @brief GPU-specific instructions and features
+* For future extension to GPU support
+*/
+typedef enum coil_gpu_instr {
+  /* Core GPU Operations */
+  ISA_GPU_BARRIER = (1 << 0),      /**< Barrier synchronization */
+  ISA_GPU_ATOMIC = (1 << 1),       /**< Atomic operations */
+  ISA_GPU_VOTE = (1 << 2),         /**< Vote operations */
+  ISA_GPU_SHUFFLE = (1 << 3),      /**< Shuffle operations */
   
-  /* Advanced control flow */
-  COIL_INSTR_CF_CMOV          = (1ULL << 5),  /**< Conditional move */
-  COIL_INSTR_CF_CSET          = (1ULL << 6),  /**< Conditional set */
-  COIL_INSTR_CF_LOOP          = (1ULL << 7),  /**< Loop instructions */
+  /* Thread Management */
+  ISA_GPU_THREAD_SYNC = (1 << 4),  /**< Thread synchronization */
+  ISA_GPU_WARP_SYNC = (1 << 5),    /**< Warp synchronization */
+  ISA_GPU_BLOCK_SYNC = (1 << 6),   /**< Block synchronization */
   
-  /* System operations */
-  COIL_INSTR_CF_SYSCALL       = (1ULL << 8),  /**< System call */
-  COIL_INSTR_CF_TRAP          = (1ULL << 9),  /**< Trap/exception */
-  COIL_INSTR_CF_BREAK         = (1ULL << 10), /**< Breakpoint */
+  /* Parallel Primitives */
+  ISA_GPU_REDUCE = (1 << 7),       /**< Reduction operations */
+  ISA_GPU_SCAN = (1 << 8),         /**< Scan operations */
   
-  /* Thread synchronization */
-  COIL_INSTR_CF_BARRIER       = (1ULL << 11), /**< Memory barrier */
-  COIL_INSTR_CF_ATOMIC        = (1ULL << 12), /**< Atomic operations */
-  COIL_INSTR_CF_FENCE         = (1ULL << 13), /**< Memory fence */
-} coil_instr_control_flow_t;
+  /* Graphics Operations */
+  ISA_GPU_TEXTURE = (1 << 9),      /**< Texture operations */
+  ISA_GPU_RASTERIZE = (1 << 10),   /**< Rasterization operations */
+  ISA_GPU_INTERP = (1 << 11),      /**< Interpolation operations */
+  
+  /* Specialized Math */
+  ISA_GPU_FP16_MATH = (1 << 12),   /**< Half-precision math operations */
+  ISA_GPU_TENSOR = (1 << 13),      /**< Tensor operations */
+  ISA_GPU_MATRIX = (1 << 14),      /**< Matrix operations */
+} coil_gpu_instr_t;
+```
 
+### Configurations
+```c
 /**
- * @brief Memory synchronization capabilities
- */
-typedef enum coil_instr_mem_sync {
-  COIL_INSTR_MEM_FENCE        = (1ULL << 0),  /**< Memory fence */
-  COIL_INSTR_MEM_BARRIER_ACQ  = (1ULL << 1),  /**< Acquire barrier */
-  COIL_INSTR_MEM_BARRIER_REL  = (1ULL << 2),  /**< Release barrier */
-  COIL_INSTR_MEM_BARRIER_FULL = (1ULL << 3),  /**< Full barrier */
-} coil_instr_mem_sync_t;
+* @brief Base configuration
+*/
+typedef struct coil_conf {
+  /* Version information */
+  coil_version_t version;           /**< Structure version information */
+  coil_pu_type_t pu;                /**< Processing unit information */
+  
+  /* Type capabilities */
+  coil_int_t _int8;                 /**< 8-bit integer support */
+  coil_int_t _int16;                /**< 16-bit integer support */
+  coil_int_t _int32;                /**< 32-bit integer support */
+  coil_int_t _int64;                /**< 64-bit integer support */
+  coil_int_t _int128;               /**< 128-bit integer support (if available) */
 
-/**
- * @brief ABI calling convention
- */
-typedef struct coil_abi {
-  char name[32];                      /**< Name of the ABI */
-  
-  /* Parameter passing */
-  coil_reg_t *int_param_regs;         /**< Integer parameter registers */
-  uint8_t int_param_reg_count;        /**< Number of integer parameter registers */
-  coil_reg_t *fp_param_regs;          /**< FP parameter registers */
-  uint8_t fp_param_reg_count;         /**< Number of FP parameter registers */
-  uint8_t stack_alignment;            /**< Stack alignment in bytes */
-  
-  /* Return values */
-  coil_reg_t *int_return_regs;        /**< Integer return registers */
-  uint8_t int_return_reg_count;       /**< Number of integer return registers */
-  coil_reg_t *fp_return_regs;         /**< FP return registers */
-  uint8_t fp_return_reg_count;        /**< Number of FP return registers */
-  
-  /* Register preservation */
-  coil_reg_t *caller_saved;           /**< Caller-saved registers */
-  uint8_t caller_saved_count;         /**< Number of caller-saved registers */
-  coil_reg_t *callee_saved;           /**< Callee-saved registers */
-  uint8_t callee_saved_count;         /**< Number of callee-saved registers */
-  
-  /* Stack behavior */
-  bool stack_grows_down;              /**< Whether stack grows downward */
-  uint16_t red_zone_size;             /**< Size of the red zone in bytes */
-  bool shadow_space;                  /**< Whether shadow space is used */
-  uint16_t shadow_space_size;         /**< Size of shadow space in bytes */
-} coil_abi_t;
+  coil_fp_t _fp8e5m2;               /**< 8-bit E5M2 floating point support */
+  coil_fp_t _fp8e4m3;               /**< 8-bit E4M3 floating point support */
+  coil_fp_t _fp16;                  /**< 16-bit IEEE half precision */
+  coil_fp_t _fpb16;                 /**< 16-bit brain floating point */
+  coil_fp_t _fp32;                  /**< 32-bit IEEE single precision */
+  coil_fp_t _fpt32;                 /**< 32-bit tensor float */
+  coil_fp_t _fp64;                  /**< 64-bit IEEE double precision */
+  coil_fp_t _fp80;                  /**< 80-bit x87 extended precision */
+  coil_fp_t _fp128;                 /**< 128-bit IEEE quad precision */
 
-/**
- * @brief System call interface
- */
-typedef struct coil_syscall_abi {
-  char name[32];                      /**< Name of the syscall ABI */
-  
-  coil_reg_t syscall_num_reg;         /**< Register for syscall number */
-  coil_reg_t *param_regs;             /**< Parameter registers */
-  uint8_t param_reg_count;            /**< Number of parameter registers */
-  coil_reg_t return_reg;              /**< Return value register */
-  coil_reg_t error_reg;               /**< Error code register */
-  char trap_instruction[16];          /**< Instruction used to trigger syscall */
-  
-  /* Syscall number table */
-  struct {
-    char name[32];                    /**< Syscall name */
-    uint32_t number;                  /**< Syscall number */
-  } *syscalls;                        /**< Array of syscall definitions */
-  uint16_t syscall_count;             /**< Number of syscall definitions */
-} coil_syscall_abi_t;
-
-/**
- * @brief Target architecture description
- */
-typedef struct coil_target {
-  /* Identification */
-  char name[32];                      /**< Target name */
-  coil_cpu_arch_t arch;               /**< CPU architecture */
-  
-  /* Basic properties */
-  uint8_t word_size;                  /**< Word size in bits (32/64) */
-  coil_endianness_t endianness;       /**< Byte order */
+  coil_vec_t _vec128;               /**< 128-bit vector */
+  coil_vec_t _vec256;               /**< 256-bit vector */
+  coil_vec_t _vec512;               /**< 512-bit vector */
+  coil_vec_t _vec1024;              /**< 1024-bit vector (if available) */
   
   /* Instruction capabilities */
-  uint64_t instr_int_1;               /**< Integer instruction capabilities part 1 */
-  uint64_t instr_fp;                  /**< Floating-point instruction capabilities */
-  uint64_t instr_vector;              /**< SIMD/Vector instruction capabilities */
-  uint64_t instr_control_flow;        /**< Control flow instruction capabilities */
-  uint64_t instr_mem_sync;            /**< Memory synchronization capabilities */
+  coil_instr_t instr;               /**< Common processing unit instructions */
+
+  /* Memory subsystem */
+  coil_memory_subsystem_t memory;   /**< Memory subsystem configuration */
   
-  /* Registers */
-  struct {
-    coil_reg_t *gp_regs;             /**< General purpose registers */
-    uint8_t gp_reg_count;            /**< Number of GP registers */
-    coil_reg_t *fp_regs;             /**< Floating point registers */
-    uint8_t fp_reg_count;            /**< Number of FP registers */
-    coil_reg_t *vec_regs;            /**< Vector registers */
-    uint8_t vec_reg_count;           /**< Number of vector registers */
-    coil_reg_t *special_regs;        /**< Special registers */
-    uint8_t special_reg_count;       /**< Number of special registers */
-    
-    coil_reg_alias_t *aliases;       /**< Register aliases */
-    uint16_t alias_count;            /**< Number of register aliases */
-    
-    struct {
-      char virtual_name[16];         /**< Virtual register name */
-      char target_name[16];          /**< Target register name */
-    } *virtual_mappings;             /**< Virtual to physical register mappings */
-    uint16_t virtual_mapping_count;  /**< Number of virtual mappings */
-  } registers;
-  
-  /* ABI information */
-  coil_abi_t *abis;                   /**< Supported ABIs */
-  uint8_t abi_count;                  /**< Number of ABIs */
-  char default_abi[32];               /**< Default ABI name */
-  
-  /* System interface */
-  coil_syscall_abi_t *syscall_abis;   /**< Syscall ABIs */
-  uint8_t syscall_abi_count;          /**< Number of syscall ABIs */
-  
-  /* Memory system */
-  struct {
-    uint16_t cache_line_size;         /**< Cache line size in bytes */
-    bool unaligned_access;            /**< Whether unaligned access is supported */
-    uint8_t min_alignment;            /**< Minimum required alignment in bytes */
-  } memory;
-  
-  /* Extensions */
-  struct {
-    char name[32];                    /**< Extension name */
-    uint64_t features;                /**< Extension-specific features */
-  } *extensions;                      /**< Hardware extensions */
-  uint8_t extension_count;            /**< Number of extensions */
-} coil_target_t;
+  /* Execution resources */
+  coil_execution_t execution;       /**< Execution resources configuration */
+
+  /* ABI definitions */
+  // TODO
+};
 
 /**
- * @brief Main COIL configuration structure
- */
-typedef struct coil_config {
+* @brief CPU configuration structure with versioning and extended capabilities
+*/
+typedef struct coil_cpu {
   /* Version information */
-  coil_config_version_t version;      /**< Configuration version */
+  coil_version_t version;           /**< Structure version information */
+  coil_pu_type_t pu;                /**< Processing unit information */
   
-  /* Targets */
-  coil_target_t *targets;             /**< Defined targets */
-  uint8_t target_count;               /**< Number of targets */
-  
-  /* Additional metadata */
-  char author[64];                    /**< Configuration author */
-  char description[256];              /**< Configuration description */
-} coil_config_t;
+  /* Type capabilities */
+  coil_int_t _int8;                 /**< 8-bit integer support */
+  coil_int_t _int16;                /**< 16-bit integer support */
+  coil_int_t _int32;                /**< 32-bit integer support */
+  coil_int_t _int64;                /**< 64-bit integer support */
+  coil_int_t _int128;               /**< 128-bit integer support (if available) */
 
-#endif /* COIL_CONFIG_H */
+  coil_fp_t _fp8e5m2;               /**< 8-bit E5M2 floating point support */
+  coil_fp_t _fp8e4m3;               /**< 8-bit E4M3 floating point support */
+  coil_fp_t _fp16;                  /**< 16-bit IEEE half precision */
+  coil_fp_t _fpb16;                 /**< 16-bit brain floating point */
+  coil_fp_t _fp32;                  /**< 32-bit IEEE single precision */
+  coil_fp_t _fpt32;                 /**< 32-bit tensor float */
+  coil_fp_t _fp64;                  /**< 64-bit IEEE double precision */
+  coil_fp_t _fp80;                  /**< 80-bit x87 extended precision */
+  coil_fp_t _fp128;                 /**< 128-bit IEEE quad precision */
+
+  coil_vec_t _vec128;               /**< 128-bit vector */
+  coil_vec_t _vec256;               /**< 256-bit vector */
+  coil_vec_t _vec512;               /**< 512-bit vector */
+  coil_vec_t _vec1024;              /**< 1024-bit vector (if available) */
+  
+  /* Instruction capabilities */
+  coil_instr_t instr;               /**< Common processing unit instructions */
+
+  /* Memory subsystem */
+  coil_memory_subsystem_t memory;   /**< Memory subsystem configuration */
+  
+  /* Execution resources */
+  coil_execution_t execution;       /**< Execution resources configuration */
+  
+  /* ABI definitions */
+  // TODO
+
+  /* Basic identification */
+  coil_cpu_arch_t arch;             /**< CPU architecture */
+  char ident[64];                   /**< CPU identifier */
+  char product[64];                 /**< Product name */
+  char vendor[64];                  /**< Vendor name */
+  uint32_t generation;              /**< Generation or family */
+  uint32_t year;                    /**< Release year */
+  char microarch[64];               /**< Microarchitecture name */
+  uint32_t arch_version;            /**< Architecture version */
+  uint32_t impl_version;            /**< Implementation version */
+  char isa_string[256];             /**< ISA string representation */
+
+  /* Processing Specific Instructions */
+  coil_cpu_instr_t instrcpu;        /**< CPU-specific instructions */
+  
+  /* Power management */
+  uint32_t tdp_watts;               /**< Thermal design power in watts */
+  uint32_t base_frequency_mhz;      /**< Base frequency in MHz */
+  uint32_t max_frequency_mhz;       /**< Maximum frequency in MHz */
+  bool dynamic_frequency;           /**< Support for dynamic frequency scaling */
+  bool power_states;                /**< Support for power states (C-states) */
+  
+} coil_cpu_t;
 ```
 
-## Configuration Instance
-
-Here's what a configuration instance looks like when populated with values:
-
+### Helper Structures
 ```c
-// Example COIL Configuration for x86_64
-coil_config_t config = {
-  .version = {
-    .major = 1,
-    .minor = 0,
-    .patch = 0
-  },
+/**
+* @brief Hardware Type Configuration
+*/
+typedef struct coil_int {
+  int _sizeof;                   /**< Size of the integer type in bytes */
+  int _allign;                   /**< Alignment requirement in bytes */
+  coil_cpu_reg_t reg;            /**< Register type used for this integer type */
+  coil_type_instr_t basic_instr; /**< Basic instructions supported for this type */
+  coil_int_instr_t int_instr;    /**< Integer-specific instructions supported */
+} coil_int_t;
+
+typedef struct coil_fp {
+  int _sizeof;                   /**< Size of the floating-point type in bytes */
+  int _allign;                   /**< Alignment requirement in bytes */
+  coil_cpu_reg_t reg;            /**< Register type used for this floating-point type */
+  coil_type_instr_t basic_instr; /**< Basic instructions supported for this type */
+  coil_fp_instr_t fp_instr;      /**< Floating-point-specific instructions supported */
+} coil_fp_t;
+
+typedef struct coil_vec {
+  int _sizeof;                   /**< Size of the vector type in bytes */
+  int _allign;                   /**< Alignment requirement in bytes */
+  coil_cpu_reg_t reg;            /**< Register type used for this vector type */
+  coil_type_instr_t basic_instr; /**< Basic instructions supported for this type */
+  coil_vec_instr_t vec_instr;    /**< Vector-specific instructions supported */
+  int element_count;             /**< Number of elements in the vector */
+  int element_size;              /**< Size of each element in bytes */
+} coil_vec_t;
+
+/**
+* @brief Cache and Memory Subsystem Configuration
+*/
+typedef struct coil_cache_level {
+  uint32_t size_kb;              /**< Cache size in kilobytes */
+  uint32_t line_size;            /**< Cache line size in bytes */
+  uint32_t associativity;        /**< Cache associativity */
+  uint32_t latency_cycles;       /**< Access latency in cycles */
+  bool inclusive;                /**< Whether the cache is inclusive */
+  bool write_back;               /**< Whether the cache is write-back (vs write-through) */
+} coil_cache_level_t;
+
+typedef struct coil_memory_subsystem {
+  coil_cache_level_t l1i;        /**< L1 instruction cache */
+  coil_cache_level_t l1d;        /**< L1 data cache */
+  coil_cache_level_t l2;         /**< L2 cache */
+  coil_cache_level_t l3;         /**< L3 cache */
   
-  .author = "COIL Development Team",
-  .description = "Standard COIL configuration for x86_64",
+  uint32_t page_size_kb;         /**< Default page size in kilobytes */
+  uint32_t tlb_entries;          /**< Number of TLB entries */
   
-  .target_count = 1,
-  .targets = {
-    {
-      .name = "x86_64",
-      .arch = COIL_CPU_ARCH_X86,
-      .word_size = 64,
-      .endianness = COIL_ENDIAN_LITTLE,
-      
-      // Instruction capabilities bitfields
-      .instr_int_1 = 
-          COIL_INSTR_INT_ADD | 
-          COIL_INSTR_INT_SUB | 
-          COIL_INSTR_INT_MUL |
-          COIL_INSTR_INT_DIV | 
-          COIL_INSTR_INT_REM |
-          // Many more instruction capability flags...
-          COIL_INSTR_INT_PUSH | 
-          COIL_INSTR_INT_POP,
-          
-      .instr_fp = 
-          COIL_INSTR_FP_ADD | 
-          COIL_INSTR_FP_SUB | 
-          COIL_INSTR_FP_MUL |
-          COIL_INSTR_FP_DIV | 
-          // More FP instructions...
-          COIL_INSTR_FP_LOAD | 
-          COIL_INSTR_FP_STORE,
-          
-      .instr_control_flow = 
-          COIL_INSTR_CF_BRANCH | 
-          COIL_INSTR_CF_BRANCH_COND | 
-          COIL_INSTR_CF_CALL |
-          COIL_INSTR_CF_RET | 
-          COIL_INSTR_CF_SYSCALL,
-      
-      // Registers
-      .registers = {
-        .gp_reg_count = 16,
-        .gp_regs = {
-          { .type = COIL_REG_GP, .index = 0, .name = "rax", .size = 64 },
-          { .type = COIL_REG_GP, .index = 1, .name = "rbx", .size = 64 },
-          { .type = COIL_REG_GP, .index = 2, .name = "rcx", .size = 64 },
-          // More registers...
-        },
-        
-        .fp_reg_count = 16,
-        .fp_regs = {
-          { .type = COIL_REG_FP, .index = 0, .name = "xmm0", .size = 128 },
-          { .type = COIL_REG_FP, .index = 1, .name = "xmm1", .size = 128 },
-          // More registers...
-        },
-        
-        .alias_count = 16,
-        .aliases = {
-          { .alias = "eax", .target = "rax", .start_bit = 0, .end_bit = 31 },
-          { .alias = "ax", .target = "rax", .start_bit = 0, .end_bit = 15 },
-          { .alias = "al", .target = "rax", .start_bit = 0, .end_bit = 7 },
-          // More aliases...
-        },
-        
-        .virtual_mapping_count = 32,
-        .virtual_mappings = {
-          { .virtual_name = "r0", .target_name = "rax" },
-          { .virtual_name = "r1", .target_name = "rcx" },
-          // More mappings...
-          { .virtual_name = "f0", .target_name = "xmm0" },
-          { .virtual_name = "f1", .target_name = "xmm1" },
-          // More mappings...
-        }
-      },
-      
-      // ABIs
-      .abi_count = 2,
-      .abis = {
-        {
-          .name = "system_v",
-          .int_param_reg_count = 6,
-          .int_param_regs = { "rdi", "rsi", "rdx", "rcx", "r8", "r9" },
-          .fp_param_reg_count = 8,
-          .fp_param_regs = { "xmm0", "xmm1", "xmm2", "xmm3", "xmm4", "xmm5", "xmm6", "xmm7" },
-          .stack_alignment = 16,
-          
-          .int_return_reg_count = 1,
-          .int_return_regs = { "rax" },
-          .fp_return_reg_count = 1,
-          .fp_return_regs = { "xmm0" },
-          
-          .caller_saved_count = 9,
-          .caller_saved = { "rax", "rcx", "rdx", "rsi", "rdi", "r8", "r9", "r10", "r11" },
-          .callee_saved_count = 6,
-          .callee_saved = { "rbx", "rbp", "r12", "r13", "r14", "r15" },
-          
-          .stack_grows_down = true,
-          .red_zone_size = 128,
-          .shadow_space = false,
-        },
-        {
-          .name = "win64",
-          .int_param_reg_count = 4,
-          .int_param_regs = { "rcx", "rdx", "r8", "r9" },
-          // Rest of Win64 ABI configuration...
-        }
-      },
-      
-      // Default ABI
-      .default_abi = "system_v",
-      
-      // Syscall ABIs
-      .syscall_abi_count = 1,
-      .syscall_abis = {
-        {
-          .name = "linux_x86_64",
-          .syscall_num_reg = { .name = "rax" },
-          .param_reg_count = 6,
-          .param_regs = { "rdi", "rsi", "rdx", "r10", "r8", "r9" },
-          .return_reg = { .name = "rax" },
-          .error_reg = { .name = "rax" },
-          .trap_instruction = "syscall",
-          
-          .syscall_count = 4,
-          .syscalls = {
-            { .name = "read", .number = 0 },
-            { .name = "write", .number = 1 },
-            { .name = "open", .number = 2 },
-            { .name = "close", .number = 3 }
-            // More syscalls...
-          }
-        }
-      },
-      
-      // Memory system
-      .memory = {
-        .cache_line_size = 64,
-        .unaligned_access = true,
-        .min_alignment = 1
-      },
-      
-      // Extensions
-      .extension_count = 2,
-      .extensions = {
-        {
-          .name = "avx2",
-          .features = 0x01 // Extension-specific feature flags
-        },
-        {
-          .name = "sse4.2",
-          .features = 0x02 // Extension-specific feature flags
-        }
-      }
-    }
-  }
-};
-```
-
-## Usage in COIL
-
-The COIL configuration is used by several components of the system:
-
-1. **Assembler**: Uses the configuration to generate correct machine code for each target
-   ```c
-   // Example assembler usage
-   coil_target_t *target = find_target(config, "x86_64");
-   if (target->instr_int_1 & COIL_INSTR_INT_ADD) {
-     // Generate add instruction for x86_64
-   }
-   ```
-
-2. **Optimizer**: Uses the configuration to make target-specific optimization decisions
-   ```c
-   // Example optimizer usage
-   if (target->registers.gp_reg_count > 16) {
-     // Use register-heavy optimization strategy
-   } else {
-     // Use memory-based optimization strategy
-   }
-   ```
-
-3. **Code Generator**: Maps virtual registers to target registers
-   ```c
-   // Example register mapping
-   char *physical_reg = NULL;
-   for (int i = 0; i < target->registers.virtual_mapping_count; i++) {
-     if (strcmp(target->registers.virtual_mappings[i].virtual_name, "r0") == 0) {
-       physical_reg = target->registers.virtual_mappings[i].target_name;
-       break;
-     }
-   }
-   ```
-
-4. **ABI Handler**: Ensures proper function call conventions
-   ```c
-   // Example ABI usage
-   coil_abi_t *abi = NULL;
-   for (int i = 0; i < target->abi_count; i++) {
-     if (strcmp(target->abis[i].name, "system_v") == 0) {
-       abi = &target->abis[i];
-       break;
-     }
-   }
-   
-   // Get parameter register for first argument
-   char *param_reg = abi->int_param_regs[0].name;
-   ```
-
-5. **Syscall Interface**: Manages system call conventions
-   ```c
-   // Example syscall usage
-   coil_syscall_abi_t *syscall_abi = &target->syscall_abis[0];
-   
-   // Get syscall number for "write"
-   int syscall_num = -1;
-   for (int i = 0; i < syscall_abi->syscall_count; i++) {
-     if (strcmp(syscall_abi->syscalls[i].name, "write") == 0) {
-       syscall_num = syscall_abi->syscalls[i].number;
-       break;
-     }
-   }
-   
-   // Generate code to put syscall number in appropriate register
-   generate_mov_instruction(syscall_abi->syscall_num_reg.name, syscall_num);
-   ```
-
-## Serialization Format
-
-The COIL configuration can be serialized to and from configuration files using a structured format:
-
-```
-// COIL configuration for x86_64
-config {
-  version = { major = 1, minor = 0, patch = 0 }
-  author = "COIL Development Team"
-  description = "Standard COIL configuration for x86_64"
-}
-
-// Target definition
-target x86_64 {
-  arch = COIL_CPU_ARCH_X86
-  word_size = 64
-  endianness = COIL_ENDIAN_LITTLE
+  uint32_t memory_bandwidth_gbps; /**< Memory bandwidth in GB/s */
+  uint32_t memory_latency_ns;    /**< Memory latency in nanoseconds */
   
-  // Instruction capabilities using bit flags
-  instr_int_1 = 0xFFFFFFFFFFFFFFFF  // All integer instructions supported
-  instr_fp = 0x1FFFFF               // All FP instructions supported
-  instr_vector = 0x3FFFFF           // All vector instructions supported
-  instr_control_flow = 0x3FFF       // All control flow instructions supported
-  instr_mem_sync = 0xF              // All memory sync instructions supported
+  bool support_uncached;         /**< Support for uncached memory access */
+  bool support_write_combining;  /**< Support for write combining */
+  bool support_write_through;    /**< Support for write-through memory */
   
-  // Register definitions
-  registers {
-    // General purpose registers
-    gp_regs = [
-      { type = COIL_REG_GP, index = 0, name = "rax", size = 64 },
-      { type = COIL_REG_GP, index = 1, name = "rbx", size = 64 },
-      { type = COIL_REG_GP, index = 2, name = "rcx", size = 64 },
-      { type = COIL_REG_GP, index = 3, name = "rdx", size = 64 },
-      { type = COIL_REG_GP, index = 4, name = "rsi", size = 64 },
-      { type = COIL_REG_GP, index = 5, name = "rdi", size = 64 },
-      { type = COIL_REG_GP, index = 6, name = "rbp", size = 64 },
-      { type = COIL_REG_GP, index = 7, name = "rsp", size = 64 },
-      { type = COIL_REG_GP, index = 8, name = "r8", size = 64 },
-      { type = COIL_REG_GP, index = 9, name = "r9", size = 64 },
-      { type = COIL_REG_GP, index = 10, name = "r10", size = 64 },
-      { type = COIL_REG_GP, index = 11, name = "r11", size = 64 },
-      { type = COIL_REG_GP, index = 12, name = "r12", size = 64 },
-      { type = COIL_REG_GP, index = 13, name = "r13", size = 64 },
-      { type = COIL_REG_GP, index = 14, name = "r14", size = 64 },
-      { type = COIL_REG_GP, index = 15, name = "r15", size = 64 }
-    ]
-    
-    // Floating point registers
-    fp_regs = [
-      { type = COIL_REG_FP, index = 0, name = "xmm0", size = 128 },
-      { type = COIL_REG_FP, index = 1, name = "xmm1", size = 128 },
-      // More registers...
-    ]
-    
-    // Register aliases
-    aliases = [
-      { alias = "eax", target = "rax", start_bit = 0, end_bit = 31 },
-      { alias = "ax", target = "rax", start_bit = 0, end_bit = 15 },
-      { alias = "al", target = "rax", start_bit = 0, end_bit = 7 },
-      // More aliases...
-    ]
-    
-    // Virtual register mappings
-    virtual_mappings = [
-      { virtual_name = "r0", target_name = "rax" },
-      { virtual_name = "r1", target_name = "rcx" },
-      { virtual_name = "r2", target_name = "rdx" },
-      // More mappings...
-    ]
-  }
+  bool support_ecc;              /**< Support for ECC memory */
+  bool support_non_temporal;     /**< Support for non-temporal memory access */
   
-  // ABI definitions
-  abis = [
-    {
-      name = "system_v"
-      int_param_regs = ["rdi", "rsi", "rdx", "rcx", "r8", "r9"]
-      fp_param_regs = ["xmm0", "xmm1", "xmm2", "xmm3", "xmm4", "xmm5", "xmm6", "xmm7"]
-      stack_alignment = 16
-      
-      int_return_regs = ["rax"]
-      fp_return_regs = ["xmm0"]
-      
-      caller_saved = ["rax", "rcx", "rdx", "rsi", "rdi", "r8", "r9", "r10", "r11"]
-      callee_saved = ["rbx", "rbp", "r12", "r13", "r14", "r15"]
-      
-      stack_grows_down = true
-      red_zone_size = 128
-      shadow_space = false
-    },
-    {
-      name = "win64"
-      // Win64 ABI details...
-    }
-  ]
+  bool support_locked_ops;       /**< Support for locked memory operations */
+  bool support_unaligned_access; /**< Support for unaligned memory access */
+} coil_memory_subsystem_t;
+
+/**
+* @brief Execution Resources Configuration
+*/
+typedef struct coil_execution {
+  uint32_t pipeline_stages;      /**< Number of pipeline stages */
+  uint32_t issue_width;          /**< Instruction issue width */
+  uint32_t dispatch_width;       /**< Instruction dispatch width */
   
-  default_abi = "system_v"
+  uint32_t int_units;            /**< Number of integer execution units */
+  uint32_t fp_units;             /**< Number of floating-point execution units */
+  uint32_t vector_units;         /**< Number of vector execution units */
+  uint32_t branch_units;         /**< Number of branch execution units */
+  uint32_t load_store_units;     /**< Number of load/store units */
   
-  // Syscall ABI definitions
-  syscall_abis = [
-    {
-      name = "linux_x86_64"
-      syscall_num_reg = "rax"
-      param_regs = ["rdi", "rsi", "rdx", "r10", "r8", "r9"]
-      return_reg = "rax"
-      error_reg = "rax" 
-      trap_instruction = "syscall"
-      
-      syscalls = [
-        { name = "read", number = 0 },
-        { name = "write", number = 1 },
-        { name = "open", number = 2 },
-        { name = "close", number = 3 },
-        // More syscalls...
-      ]
-    }
-  ]
+  bool out_of_order;             /**< Support for out-of-order execution */
+  bool speculative_execution;    /**< Support for speculative execution */
+  bool branch_prediction;        /**< Support for branch prediction */
   
-  // Memory system
-  memory {
-    cache_line_size = 64
-    unaligned_access = true
-    min_alignment = 1
-  }
-  
-  // Extensions
-  extensions = [
-    {
-      name = "avx2"
-      features = 0x1
-    },
-    {
-      name = "sse4.2"
-      features = 0x2
-    }
-  ]
-}
-```
-
-## Adding New Targets
-
-To add a new target to the COIL configuration:
-
-1. Define a new target structure in the configuration file
-2. Specify its instruction capabilities using bitfields
-3. Define its register set with proper mappings to virtual registers
-4. Specify ABIs and syscall interfaces
-5. Define target-specific extensions
-
-Example of adding an ARM64 target:
-
-```
-target arm64 {
-  arch = COIL_CPU_ARCH_ARM
-  word_size = 64
-  endianness = COIL_ENDIAN_LITTLE
-  
-  // Instruction capabilities
-  instr_int_1 = 0xFFFFFFFFFFFFFFF7  // All but a few integer instructions
-  instr_fp = 0x1FFFFF               // All FP instructions
-  // More capabilities...
-  
-  // Register set
-  registers {
-    gp_regs = [
-      { type = COIL_REG_GP, index = 0, name = "x0", size = 64 },
-      { type = COIL_REG_GP, index = 1, name = "x1", size = 64 },
-      // More registers...
-    ]
-    
-    // Virtual register mappings
-    virtual_mappings = [
-      { virtual_name = "r0", target_name = "x0" },
-      { virtual_name = "r1", target_name = "x1" },
-      // More mappings...
-    ]
-  }
-  
-  // ABI definitions
-  abis = [
-    {
-      name = "aapcs64"
-      // AAPCS64 ABI details...
-    }
-  ]
-  
-  // More ARM64-specific configuration...
-}
-```
-
-## Conclusion
-
-The COIL Configuration Format provides a comprehensive, structured approach to defining target architectures, instruction capabilities, ABIs, and system interfaces. By using a C-structure-inspired format with detailed bitfields for capabilities, it enables precise control over code generation while maintaining cross-platform compatibility.
-
-This approach makes it easy to:
-1. Add new target architectures
-2. Specify detailed hardware capabilities
-3. Define complex register mappings
-4. Configure multiple ABIs and syscall interfaces
-5. Enable target-specific optimizations
-
-The configuration system forms the backbone of COIL's ability to generate efficient code across diverse architectures while maintaining a consistent programming model.
-
-
-## Key Configuration Components
-
-### Target Definition
-
-The target definition specifies the basic properties of a hardware architecture:
-
-```
-target <name> {
-    word_size = <bits>        // Natural word size (typically 32 or 64)
-    endian = <little|big>     // Endianness
-    features = [<feature>, ...] // Supported hardware features
-    default_abi = <abi_name>  // Default ABI for this target
-}
-```
-
-### Register Definition
-
-The register definition specifies the available registers for a target:
-
-```
-registers <target_name> {
-    general {
-        size = <bits>               // Size in bits
-        names = [<reg>, ...]        // Available general registers
-        aliases { ... }             // Register aliases
-        special { ... }             // Special register mappings
-    }
-    
-    floating {
-        size = <bits>               // Size in bits
-        names = [<reg>, ...]        // Available floating-point registers
-        aliases { ... }             // Register aliases
-    }
-    
-    flags {
-        names = [<flag>, ...]       // Flag registers or bits
-    }
-    
-    virtual {
-        <vreg> = <preg>             // Virtual to physical register mapping
-        // More mappings...
-    }
-}
-```
-
-### ABI Definition
-
-The ABI definition specifies how functions are called:
-
-```
-abi <name> {
-    target = <target_name>           // Target this ABI applies to
-    
-    parameters {
-        integer = [<reg>, ...]       // Registers for integer parameters
-        floating = [<reg>, ...]      // Registers for floating-point parameters
-        stack_alignment = <bytes>    // Stack alignment requirement
-        shadow_space = <bytes>       // Shadow space for register parameters
-    }
-    
-    returns {
-        integer = <reg>              // Register for integer return value
-        floating = <reg>             // Register for floating-point return value
-        large = [<method>, <reg>]    // Method for returning large values
-    }
-    
-    preserved {
-        integer = [<reg>, ...]       // Callee-preserved integer registers
-        floating = [<reg>, ...]      // Callee-preserved floating-point registers
-    }
-    
-    rules {
-        red_zone = <bytes>           // Size of the red zone
-        stack_canary = <bool>        // Whether stack canaries are used
-        tail_call = <bool>           // Whether tail call optimization is supported
-    }
-}
-```
-
-### Instruction Mapping
-
-The instruction mapping defines how COIL instructions map to native instructions:
-
-```
-instructions <target_name> {
-    <instruction> {
-        <operand_type> {
-            encoding = "<encoding>"    // Native instruction encoding
-            operands = [<op>, ...]     // Operand types
-            flags = [<flag>, ...]      // Affected flags
-        }
-        
-        // Other operand type variants...
-    }
-    
-    // More instructions...
-}
-```
-
-### Feature Definition
-
-The feature definition specifies hardware features:
-
-```
-feature <name> {
-    target = <target_name>          // Target this feature applies to
-    registers = [<reg>, ...]        // Registers added by this feature
-    instructions = [<inst>, ...]    // Instructions added by this feature
-}
-```
-
-### System Interface
-
-The system interface definition specifies how to interact with the operating system:
-
-```
-syscall <name> {
-    target = <target_name>          // Target this interface applies to
-    number_reg = <reg>              // Register for syscall number
-    args = [<reg>, ...]             // Registers for syscall arguments
-    result = <reg>                  // Register for syscall result
-    error = <expression>            // Error return convention
-    trap = <instruction>            // Instruction to invoke syscall
-    
-    calls {
-        <name> = <number>           // Syscall name to number mapping
-        // More syscalls...
-    }
-}
-```
-
-## Configuration Usage
-
-The COIL configuration file is used by several components of the COIL toolchain:
-
-1. **COIL Assembler**: Uses the configuration to generate correct machine code for each target
-2. **COIL Optimizer**: Uses the configuration to perform target-specific optimizations
-3. **COIL Linker**: Uses the configuration to correctly handle ABIs and linking conventions
-4. **Debugger**: Uses the configuration to map between COIL and native representations
-
-## Configuration Inheritance and Overrides
-
-COIL configurations support inheritance and overrides to facilitate reuse and customization:
-
-```
-config "custom_config" {
-    base = "main_config"
-    version = "1.0.0-custom"
-}
-
-// Extend the x86_64 target with custom settings
-target x86_64 {
-    extends = "main_config.x86_64"
-    features += [avx512f, avx512bw]
-}
-
-// Override ABI for specific use case
-abi system_v {
-    extends = "main_config.system_v"
-    rules.red_zone = 0  // Disable red zone for kernel code
-}
-```
-
-## Configuration Variables
-
-COIL configurations can include variables for more flexible definitions:
-
-```
-config "parametric_config" {
-    version = "1.0.0"
-    vars {
-        WORD_SIZE = 64
-        VECTOR_SIZE = 256
-    }
-}
-
-target x86_64 {
-    word_size = ${WORD_SIZE}
-    // Other settings...
-}
-
-registers x86_64 {
-    vector {
-        size = ${VECTOR_SIZE}
-        // Other settings...
-    }
-}
-```
-
-## Multiple Targets in One Configuration
-
-A single COIL configuration file can define multiple targets, enabling multi-architecture projects:
-
-```
-config "heterogeneous_config" {
-    version = "1.0.0"
-    description = "Configuration for heterogeneous CPU/GPU system"
-}
-
-target x86_64 { ... }
-target cuda_gpu { ... }
-
-// Mappings between targets
-target_interface cpu_to_gpu {
-    source = x86_64
-    destination = cuda_gpu
-    
-    // Data transfer mechanisms
-    transfer {
-        method = "memcpy"
-        source_prepare = [...]
-        destination_prepare = [...]
-    }
-    
-    // Function call mechanisms
-    call {
-        method = "kernel_launch"
-        parameters = [...]
-    }
-}
-```
-
-## Configuration Validation
-
-The COIL toolchain includes a configuration validator that checks for:
-
-1. **Completeness**: Ensures all required information is present
-2. **Consistency**: Ensures there are no contradictions or conflicts
-3. **Correctness**: Ensures mappings and definitions are technically correct
-4. **Compatibility**: Ensures different components work together
-
-## Example: Complete Configuration for x86_64
-
-Here's a more detailed example of an x86_64 configuration:
-
-```
-config "x86_64_complete" {
-    version = "1.0.0"
-    description = "Complete x86_64 configuration for COIL"
-}
-
-target x86_64 {
-    word_size = 64
-    endian = little
-    features = [mmx, sse, sse2, sse3, ssse3, sse4.1, sse4.2, avx, avx2, fma]
-    default_abi = system_v
-}
-
-registers x86_64 {
-    general {
-        size = 64
-        names = [rax, rbx, rcx, rdx, rsi, rdi, rbp, rsp, r8, r9, r10, r11, r12, r13, r14, r15]
-        
-        aliases {
-            // 32-bit aliases
-            eax = rax[31:0]
-            ebx = rbx[31:0]
-            ecx = rcx[31:0]
-            edx = rdx[31:0]
-            esi = rsi[31:0]
-            edi = rdi[31:0]
-            ebp = rbp[31:0]
-            esp = rsp[31:0]
-            r8d = r8[31:0]
-            r9d = r9[31:0]
-            r10d = r10[31:0]
-            r11d = r11[31:0]
-            r12d = r12[31:0]
-            r13d = r13[31:0]
-            r14d = r14[31:0]
-            r15d = r15[31:0]
-            
-            // 16-bit aliases
-            ax = rax[15:0]
-            bx = rbx[15:0]
-            cx = rcx[15:0]
-            dx = rdx[15:0]
-            si = rsi[15:0]
-            di = rdi[15:0]
-            bp = rbp[15:0]
-            sp = rsp[15:0]
-            r8w = r8[15:0]
-            r9w = r9[15:0]
-            r10w = r10[15:0]
-            r11w = r11[15:0]
-            r12w = r12[15:0]
-            r13w = r13[15:0]
-            r14w = r14[15:0]
-            r15w = r15[15:0]
-            
-            // 8-bit aliases
-            al = rax[7:0]
-            bl = rbx[7:0]
-            cl = rcx[7:0]
-            dl = rdx[7:0]
-            sil = rsi[7:0]
-            dil = rdi[7:0]
-            bpl = rbp[7:0]
-            spl = rsp[7:0]
-            r8b = r8[7:0]
-            r9b = r9[7:0]
-            r10b = r10[7:0]
-            r11b = r11[7:0]
-            r12b = r12[7:0]
-            r13b = r13[7:0]
-            r14b = r14[7:0]
-            r15b = r15[7:0]
-            
-            ah = rax[15:8]
-            bh = rbx[15:8]
-            ch = rcx[15:8]
-            dh = rdx[15:8]
-        }
-        
-        special {
-            pc = rip
-            sp = rsp
-            fp = rbp
-        }
-    }
-    
-    floating {
-        size = 128
-        names = [xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7, xmm8, xmm9, xmm10, xmm11, xmm12, xmm13, xmm14, xmm15]
-        
-        aliases {
-            // AVX 256-bit registers
-            ymm0 = [xmm0, xmm0_hi]
-            ymm1 = [xmm1, xmm1_hi]
-            ymm2 = [xmm2, xmm2_hi]
-            ymm3 = [xmm3, xmm3_hi]
-            ymm4 = [xmm4, xmm4_hi]
-            ymm5 = [xmm5, xmm5_hi]
-            ymm6 = [xmm6, xmm6_hi]
-            ymm7 = [xmm7, xmm7_hi]
-            ymm8 = [xmm8, xmm8_hi]
-            ymm9 = [xmm9, xmm9_hi]
-            ymm10 = [xmm10, xmm10_hi]
-            ymm11 = [xmm11, xmm11_hi]
-            ymm12 = [xmm12, xmm12_hi]
-            ymm13 = [xmm13, xmm13_hi]
-            ymm14 = [xmm14, xmm14_hi]
-            ymm15 = [xmm15, xmm15_hi]
-        }
-    }
-    
-    flags {
-        names = [cf, pf, af, zf, sf, tf, if, df, of]
-        aliases {
-            carry = cf
-            parity = pf
-            adjust = af
-            zero = zf
-            sign = sf
-            trap = tf
-            interrupt = if
-            direction = df
-            overflow = of
-        }
-    }
-    
-    virtual {
-        // General purpose COIL virtual registers to x86_64 mappings
-        r0 = rax
-        r1 = rcx
-        r2 = rdx
-        r3 = rbx
-        r4 = rsi
-        r5 = rdi
-        r6 = r8
-        r7 = r9
-        r8 = r10
-        r9 = r11
-        r10 = r12
-        r11 = r13
-        r12 = r14
-        r13 = r15
-        r14 = rbp
-        r15 = rsp
-        
-        // Floating point COIL virtual registers to x86_64 mappings
-        f0 = xmm0
-        f1 = xmm1
-        f2 = xmm2
-        f3 = xmm3
-        f4 = xmm4
-        f5 = xmm5
-        f6 = xmm6
-        f7 = xmm7
-        f8 = xmm8
-        f9 = xmm9
-        f10 = xmm10
-        f11 = xmm11
-        f12 = xmm12
-        f13 = xmm13
-        f14 = xmm14
-        f15 = xmm15
-        
-        // Vector COIL virtual registers to x86_64 mappings
-        v0 = ymm0
-        v1 = ymm1
-        v2 = ymm2
-        v3 = ymm3
-        v4 = ymm4
-        v5 = ymm5
-        v6 = ymm6
-        v7 = ymm7
-        v8 = ymm8
-        v9 = ymm9
-        v10 = ymm10
-        v11 = ymm11
-        v12 = ymm12
-        v13 = ymm13
-        v14 = ymm14
-        v15 = ymm15
-    }
-}
-
-// System V ABI for x86_64
-abi system_v {
-    target = x86_64
-    
-    parameters {
-        integer = [rdi, rsi, rdx, rcx, r8, r9]
-        floating = [xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7]
-        stack_alignment = 16
-        shadow_space = 0
-    }
-    
-    returns {
-        integer = rax
-        floating = xmm0
-        large = [indirect, rdi]
-    }
-    
-    preserved {
-        integer = [rbx, rsp, rbp, r12, r13, r14, r15]
-        floating = []
-    }
-    
-    rules {
-        red_zone = 128
-        stack_canary = true
-        tail_call = true
-        name_mangling = "_<name>"
-    }
-}
-
-// Windows x64 ABI
-abi win64 {
-    target = x86_64
-    
-    parameters {
-        integer = [rcx, rdx, r8, r9]
-        floating = [xmm0, xmm1, xmm2, xmm3]
-        stack_alignment = 16
-        shadow_space = 32
-    }
-    
-    returns {
-        integer = rax
-        floating = xmm0
-        large = [indirect, rcx]
-    }
-    
-    preserved {
-        integer = [rbx, rsp, rbp, rsi, rdi, r12, r13, r14, r15]
-        floating = [xmm6, xmm7, xmm8, xmm9, xmm10, xmm11, xmm12, xmm13, xmm14, xmm15]
-    }
-    
-    rules {
-        red_zone = 0
-        stack_canary = true
-        tail_call = false
-        name_mangling = "<name>"
-    }
-}
+  uint32_t reorder_buffer_size;  /**< Size of the reorder buffer */
+  uint32_t reservation_stations; /**< Number of reservation stations */
+} coil_execution_t;
 ```
 
 ## Conclusion

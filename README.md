@@ -33,12 +33,11 @@
 - [Getting Started](#getting-started)
 - [Roadmap](#roadmap)
 - [Contributing](#contributing)
-- [Related Projects](#related-projects)
 - [About the Low Level Team](#about-the-low-level-team)
 
 ## Overview
 
-WARNING THIS IS NOT AN IMPLEMENTATION. this is instead the specification for the COIL standard utilizing markdown.
+**WARNING: THIS IS NOT AN IMPLEMENTATION.** This repository contains only the specification for the COIL standard utilizing markdown documentation. It does not include any implementation code, test suites, or development tools.
 
 COIL is a binary language format designed to serve as an optimal intermediate representation between high-level languages and native machine code. Unlike traditional bytecode formats that require runtime interpretation, COIL is designed for direct translation to native code while preserving architecture independence and optimization opportunities.
 
@@ -64,7 +63,7 @@ COIL aims to provide a unified target for language implementers while giving low
   - `dir.md` - Assembler directives documentation
   - `obj.md` - Object format specifications (COF and NCOF)
   - `conf.md` - Configuration format specification
-  - `std.md` - Standard library documentation
+  - `std.md` - Standard library documentation (future versions)
 - `VERSION.md` - Versioning scheme and compatibility guarantees
 - `CONTRIBUTING.md` - Contribution guidelines
 - `CEL-GRAMMAR.md` - COIL Explanatory Language specification
@@ -77,7 +76,9 @@ COIL aims to provide a unified target for language implementers while giving low
 COIL defines several abstraction levels to accommodate different use cases:
 
 1. **RAW (Level 0)**: No dependencies, suitable for bare metal environments
-2. **SSTD (Level 1)**: Simple Standard library, statically linkable
+
+Future versions will define additional abstraction levels:
+2. **SSTD (Level 1)**: Simple Standard library 
 3. **ESTD (Level 2)**: Extended Standard library for OS environments
 4. **GSTD (Level 3)**: Graphics Standard library for display systems
 
@@ -104,7 +105,7 @@ Pre-1.0.0 versions are considered unstable and may introduce breaking changes in
 
 ## Getting Started
 
-> Note: COIL is currently in pre-alpha stage. Implementation tools are under development.
+> Note: COIL is currently in pre-alpha stage. This repository contains only specification documentation.
 
 ### Learning COIL
 
@@ -118,10 +119,10 @@ Pre-1.0.0 versions are considered unstable and may introduce breaking changes in
 - [x] Core design principles documentation
 - [ ] Complete ISA definition
 - [ ] Finalized type system specification
-- [ ] Basic standard library implementation
-- [ ] Test suite
-- [ ] Example compiler targeting COIL
-- [ ] Performance benchmarks against native code
+- [ ] Finalized binary format specification
+- [ ] Comprehensive documentation
+
+See [ROADMAP.md](./ROADMAP.md) for the complete development trajectory.
 
 ## Contributing
 
@@ -131,11 +132,7 @@ The best ways to contribute currently are:
 - Reviewing and providing feedback on specifications
 - Identifying gaps or inconsistencies in documentation
 - Proposing enhancements to the language design
-- Working on reference implementations
-
-## Related Projects
-
-> Future complementary tools and libraries will be listed here as they are developed.
+- Improving clarity and completeness of documentation
 
 ## About the Low Level Team
 

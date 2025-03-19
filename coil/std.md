@@ -1,10 +1,12 @@
-# COIL Standard Library (Version 0.1.0)
+# COIL Standard Library (Future Implementation)
 
-The COIL Standard Library provides a set of common functions and modules that can be used across different platforms. The library is organized into levels of increasing complexity and platform dependence, allowing developers to choose the appropriate level for their specific needs.
+> **Important Note**: The standard library described in this document is planned for future versions of COIL (Version 2.0.0 and beyond). Version 1.0.0 of COIL will focus only on the core specification without standard library support.
+
+The COIL Standard Library will provide a set of common functions and modules that can be used across different platforms. The library will be organized into levels of increasing complexity and platform dependence, allowing developers to choose the appropriate level for their specific needs.
 
 ## Library Structure
 
-The COIL Standard Library is divided into three main levels:
+The future COIL Standard Library will be divided into three main levels:
 
 1. **Simple Standard (SSTD)** - Level 1
    - Core functionality for all environments
@@ -26,7 +28,7 @@ The COIL Standard Library is divided into three main levels:
 
 ## Library Versioning
 
-The COIL Standard Library uses a year-based versioning scheme similar to C/C++ standards:
+The COIL Standard Library will use a year-based versioning scheme similar to C/C++ standards:
 
 ```
 COIL-STD-YYYY[a-z]
@@ -36,55 +38,23 @@ For example:
 - COIL-STD-2023a - Initial standard library release
 - COIL-STD-2024a - First major update
 
-Minor updates within a year use letter suffixes (a, b, c, etc.).
+Minor updates within a year will use letter suffixes (a, b, c, etc.).
 
 ## Level 0 - RAW
 
-Level 0 is not technically part of the standard library but represents bare COIL code with no library dependencies. This level is mentioned for completeness and to define the baseline for comparisons with higher levels.
+Level 0 is not technically part of the standard library but represents bare COIL code with no library dependencies. This level is supported in the COIL 1.0.0 specification and serves as the foundation for all COIL code.
 
-## Level 1 - Simple Standard (SSTD)
+## Implementation Timeline
 
-The Simple Standard provides core functionality that can operate without an operating system. It is designed to be small, efficient, and suitable for embedded systems or bare-metal environments.
+The standard library development will occur according to the following timeline:
 
-### SSTD Implementation
+1. Version 2.0.0 of COIL: Introduction of Simple Standard (SSTD)
+2. Version 2.1.0 of COIL: Introduction of Extended Standard (ESTD)
+3. Version 2.2.0 of COIL: Introduction of Graphics Standard (GSTD)
 
-The SSTD can be implemented in two ways:
+## Future Development
 
-1. **Static Library**: Linked directly into the executable
-2. **Header-Only**: Implemented as inline functions in headers
-
-## Level 2 - Extended Standard (ESTD)
-
-The Extended Standard builds upon the SSTD and adds functionality that requires an operating system environment. It is designed for general application development on platforms with standard OS services.
-
-### ESTD Implementation
-
-The ESTD is typically implemented as a dynamically linked library, with implementations specific to each supported operating system (Linux, Windows, etc.).
-
-## Level 3 - Graphics Standard (GSTD)
-
-The Graphics Standard builds upon the ESTD and adds graphics and user interface functionality. It requires an operating system with display capabilities.
-
-### GSTD Implementation
-
-The GSTD is implemented as a dynamically linked library, with implementations specific to each supported display system (X11, Wayland, Windows, etc.).
-
-## Standard Library Compilation
-
-The COIL standard library compilation process depends on the level:
-
-## Implementation Requirements
-
-COIL assemblers should:
-
-1. Provide a mechanism to include standard library functions
-2. Support both static and dynamic linking of standard library modules
-3. Provide platform-specific implementations where needed
-4. Maintain consistent behavior across different platforms
-
-## Future Extensions
-
-Future versions of the COIL standard library will include:
+As the COIL specification evolves, the standard library will be expanded to include:
 
 1. More comprehensive graphics and user interface capabilities
 2. Multimedia support (audio, video)

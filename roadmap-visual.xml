@@ -1,0 +1,118 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">
+  <!-- Background -->
+  <rect width="800" height="600" fill="#f8f9fa" />
+  
+  <!-- Title -->
+  <text x="400" y="30" font-family="Arial" font-size="24" text-anchor="middle" font-weight="bold">COIL Development Roadmap</text>
+  
+  <!-- Version timeline -->
+  <line x1="100" y1="100" x2="700" y2="100" stroke="#666" stroke-width="4" />
+  
+  <!-- Version markers -->
+  <circle cx="100" cy="100" r="15" fill="#4CAF50" />
+  <text x="100" y="140" font-family="Arial" font-size="16" text-anchor="middle" font-weight="bold">v1.0.0</text>
+  <text x="100" y="160" font-family="Arial" font-size="12" text-anchor="middle">Core Specification</text>
+  
+  <circle cx="233" cy="100" r="12" fill="#FFC107" />
+  <text x="233" y="140" font-family="Arial" font-size="16" text-anchor="middle" font-weight="bold">v1.x.x</text>
+  <text x="233" y="160" font-family="Arial" font-size="12" text-anchor="middle">Core Enhancements</text>
+  
+  <circle cx="366" cy="100" r="12" fill="#2196F3" />
+  <text x="366" y="140" font-family="Arial" font-size="16" text-anchor="middle" font-weight="bold">v2.x.x</text>
+  <text x="366" y="160" font-family="Arial" font-size="12" text-anchor="middle">Extended Functionality</text>
+  
+  <circle cx="500" cy="100" r="12" fill="#9C27B0" />
+  <text x="500" y="140" font-family="Arial" font-size="16" text-anchor="middle" font-weight="bold">v3.x.x</text>
+  <text x="500" y="160" font-family="Arial" font-size="12" text-anchor="middle">Heterogeneous Computing</text>
+  
+  <circle cx="633" cy="100" r="12" fill="#F44336" />
+  <text x="633" y="140" font-family="Arial" font-size="16" text-anchor="middle" font-weight="bold">v4.x.x</text>
+  <text x="633" y="160" font-family="Arial" font-size="12" text-anchor="middle">Graphics &amp; UI</text>
+  
+  <circle cx="700" cy="100" r="8" fill="#607D8B" />
+  <text x="700" y="140" font-family="Arial" font-size="16" text-anchor="middle" font-weight="bold">Future</text>
+  
+  <!-- Feature columns for each major version -->
+  <!-- v1.0.0 Features -->
+  <rect x="50" y="190" width="100" height="380" fill="#4CAF50" fill-opacity="0.1" stroke="#4CAF50" stroke-width="1" />
+  <text x="100" y="210" font-family="Arial" font-size="14" text-anchor="middle" font-weight="bold">v1.0.0</text>
+  <text x="100" y="230" font-family="Arial" font-size="12" text-anchor="middle">Core ISA</text>
+  <text x="100" y="250" font-family="Arial" font-size="12" text-anchor="middle">Binary Formats</text>
+  <text x="100" y="270" font-family="Arial" font-size="12" text-anchor="middle">Primitive Types</text>
+  <text x="100" y="290" font-family="Arial" font-size="12" text-anchor="middle">Virtual Registers</text>
+  <text x="100" y="310" font-family="Arial" font-size="12" text-anchor="middle">ABI Support</text>
+  <text x="100" y="330" font-family="Arial" font-size="12" text-anchor="middle">Configuration</text>
+  <text x="100" y="350" font-family="Arial" font-size="12" text-anchor="middle">Directives</text>
+  <text x="100" y="370" font-family="Arial" font-size="12" text-anchor="middle">x86-64, ARM</text>
+  
+  <!-- v2.x.x Features -->
+  <rect x="316" y="190" width="100" height="380" fill="#2196F3" fill-opacity="0.1" stroke="#2196F3" stroke-width="1" />
+  <text x="366" y="210" font-family="Arial" font-size="14" text-anchor="middle" font-weight="bold">v2.x.x</text>
+  <text x="366" y="230" font-family="Arial" font-size="12" text-anchor="middle">Extended Types</text>
+  <text x="366" y="250" font-family="Arial" font-size="12" text-anchor="middle">Vector Ops</text>
+  <text x="366" y="270" font-family="Arial" font-size="12" text-anchor="middle">Composite Types</text>
+  <text x="366" y="290" font-family="Arial" font-size="12" text-anchor="middle">Arrays</text>
+  <text x="366" y="310" font-family="Arial" font-size="12" text-anchor="middle">Simple Standard</text>
+  <text x="366" y="330" font-family="Arial" font-size="12" text-anchor="middle">Extended Standard</text>
+  <text x="366" y="350" font-family="Arial" font-size="12" text-anchor="middle">JIT Support</text>
+  <text x="366" y="370" font-family="Arial" font-size="12" text-anchor="middle">Dynamic Code</text>
+  
+  <!-- v3.x.x Features -->
+  <rect x="450" y="190" width="100" height="380" fill="#9C27B0" fill-opacity="0.1" stroke="#9C27B0" stroke-width="1" />
+  <text x="500" y="210" font-family="Arial" font-size="14" text-anchor="middle" font-weight="bold">v3.x.x</text>
+  <text x="500" y="230" font-family="Arial" font-size="12" text-anchor="middle">Multi-PU Support</text>
+  <text x="500" y="250" font-family="Arial" font-size="12" text-anchor="middle">GPU Support</text>
+  <text x="500" y="270" font-family="Arial" font-size="12" text-anchor="middle">TPU/NPU Support</text>
+  <text x="500" y="290" font-family="Arial" font-size="12" text-anchor="middle">Unified Memory</text>
+  <text x="500" y="310" font-family="Arial" font-size="12" text-anchor="middle">OS Integration</text>
+  <text x="500" y="330" font-family="Arial" font-size="12" text-anchor="middle">Specialized Accel.</text>
+  <text x="500" y="350" font-family="Arial" font-size="12" text-anchor="middle">Task Parallelism</text>
+  <text x="500" y="370" font-family="Arial" font-size="12" text-anchor="middle">Data Parallelism</text>
+  
+  <!-- v4.x.x Features -->
+  <rect x="583" y="190" width="100" height="380" fill="#F44336" fill-opacity="0.1" stroke="#F44336" stroke-width="1" />
+  <text x="633" y="210" font-family="Arial" font-size="14" text-anchor="middle" font-weight="bold">v4.x.x</text>
+  <text x="633" y="230" font-family="Arial" font-size="12" text-anchor="middle">Graphics Standard</text>
+  <text x="633" y="250" font-family="Arial" font-size="12" text-anchor="middle">2D/3D Rendering</text>
+  <text x="633" y="270" font-family="Arial" font-size="12" text-anchor="middle">UI Framework</text>
+  <text x="633" y="290" font-family="Arial" font-size="12" text-anchor="middle">Multimedia</text>
+  <text x="633" y="310" font-family="Arial" font-size="12" text-anchor="middle">Audio/Video</text>
+  <text x="633" y="330" font-family="Arial" font-size="12" text-anchor="middle">Scientific Comp.</text>
+  <text x="633" y="350" font-family="Arial" font-size="12" text-anchor="middle">Simulation</text>
+  <text x="633" y="370" font-family="Arial" font-size="12" text-anchor="middle">Domain Libraries</text>
+  
+  <!-- v1.x.x Features -->
+  <rect x="183" y="190" width="100" height="380" fill="#FFC107" fill-opacity="0.1" stroke="#FFC107" stroke-width="1" />
+  <text x="233" y="210" font-family="Arial" font-size="14" text-anchor="middle" font-weight="bold">v1.x.x</text>
+  <text x="233" y="230" font-family="Arial" font-size="12" text-anchor="middle">More Architectures</text>
+  <text x="233" y="250" font-family="Arial" font-size="12" text-anchor="middle">MIPS, PowerPC</text>
+  <text x="233" y="270" font-family="Arial" font-size="12" text-anchor="middle">Debug Support</text>
+  <text x="233" y="290" font-family="Arial" font-size="12" text-anchor="middle">Validation Tools</text>
+  <text x="233" y="310" font-family="Arial" font-size="12" text-anchor="middle">Security Features</text>
+  <text x="233" y="330" font-family="Arial" font-size="12" text-anchor="middle">Memory Protection</text>
+  <text x="233" y="350" font-family="Arial" font-size="12" text-anchor="middle">Enhanced Error</text>
+  <text x="233" y="370" font-family="Arial" font-size="12" text-anchor="middle">Reporting</text>
+
+  <!-- Abstraction Level Indicator -->
+  <text x="30" y="460" font-family="Arial" font-size="14" text-anchor="middle" transform="rotate(-90, 30, 460)">Higher Abstraction</text>
+  <line x1="60" y1="190" x2="60" y2="570" stroke="#666" stroke-width="2" stroke-dasharray="5,5" />
+  <polygon points="60,190 55,200 65,200" fill="#666" />
+  
+  <!-- Standard Library Levels -->
+  <rect x="700" y="230" width="80" height="30" fill="#4CAF50" fill-opacity="0.2" stroke="#4CAF50" stroke-width="1" rx="5" ry="5" />
+  <text x="740" y="250" font-family="Arial" font-size="12" text-anchor="middle">RAW (L0)</text>
+  
+  <rect x="700" y="280" width="80" height="30" fill="#2196F3" fill-opacity="0.2" stroke="#2196F3" stroke-width="1" rx="5" ry="5" />
+  <text x="740" y="300" font-family="Arial" font-size="12" text-anchor="middle">SSTD (L1)</text>
+  
+  <rect x="700" y="330" width="80" height="30" fill="#9C27B0" fill-opacity="0.2" stroke="#9C27B0" stroke-width="1" rx="5" ry="5" />
+  <text x="740" y="350" font-family="Arial" font-size="12" text-anchor="middle">ESTD (L2)</text>
+  
+  <rect x="700" y="380" width="80" height="30" fill="#F44336" fill-opacity="0.2" stroke="#F44336" stroke-width="1" rx="5" ry="5" />
+  <text x="740" y="400" font-family="Arial" font-size="12" text-anchor="middle">GSTD (L3)</text>
+  
+  <text x="740" y="210" font-family="Arial" font-size="14" text-anchor="middle" font-weight="bold">Standards</text>
+  
+  <!-- Footer -->
+  <text x="400" y="570" font-family="Arial" font-size="12" text-anchor="middle" font-style="italic">COIL - Computer Oriented Intermediate Language</text>
+</svg>

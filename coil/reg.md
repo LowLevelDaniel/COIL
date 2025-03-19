@@ -1,6 +1,8 @@
-# Virtual Register System (Version 0.1.0)
+# Virtual Register System (Version 1.0.0)
 
 The COIL Virtual Register System provides a consistent, architecture-independent way to access and manipulate registers across different platforms. This system allows direct register access when needed, while enabling COIL code to remain portable.
+
+**IMPORTANT NOTE:** This document is part of the COIL specification documentation. It does not contain implementation code, but rather describes how the virtual register system should function when implemented.
 
 ## Design Principles
 
@@ -137,71 +139,34 @@ The following table shows how COIL virtual registers map to native x86-64 regist
 | RL14 | R14D | Lower 32 bits of R14 |
 | RL15 | R15D | Lower 32 bits of R15 |
 
-### 16-bit Registers
+### 16-bit and 8-bit Registers
 
-| COIL Register | x86-64 Register | Notes |
-|---------------|-----------------|-------|
-| RW0 | AX | Lower 16 bits of RAX |
-| RW1 | BX | Lower 16 bits of RBX |
-| RW2 | CX | Lower 16 bits of RCX |
-| RW3 | DX | Lower 16 bits of RDX |
-| RW4 | DI | Lower 16 bits of RDI |
-| RW5 | SI | Lower 16 bits of RSI |
-| RW6 | SP | Lower 16 bits of RSP |
-| RW7 | BP | Lower 16 bits of RBP |
-| RW8 | R8W | Lower 16 bits of R8 |
-| RW9 | R9W | Lower 16 bits of R9 |
-| RW10 | R10W | Lower 16 bits of R10 |
-| RW11 | R11W | Lower 16 bits of R11 |
-| RW12 | R12W | Lower 16 bits of R12 |
-| RW13 | R13W | Lower 16 bits of R13 |
-| RW14 | R14W | Lower 16 bits of R14 |
-| RW15 | R15W | Lower 16 bits of R15 |
+Similar mapping applies for the 16-bit (W) and 8-bit (B) register sizes, following the x86-64 register naming conventions (AX, AL, BX, BL, etc.).
 
-### 8-bit Registers
+## Register Mapping for ARM64
 
-| COIL Register | x86-64 Register | Notes |
-|---------------|-----------------|-------|
-| RB0 | AL | Lower 8 bits of RAX |
-| RB1 | BL | Lower 8 bits of RBX |
-| RB2 | CL | Lower 8 bits of RCX |
-| RB3 | DL | Lower 8 bits of RDX |
-| RB4 | DIL | Lower 8 bits of RDI |
-| RB5 | SIL | Lower 8 bits of RSI |
-| RB6 | SPL | Lower 8 bits of RSP |
-| RB7 | BPL | Lower 8 bits of RBP |
-| RB8 | R8B | Lower 8 bits of R8 |
-| RB9 | R9B | Lower 8 bits of R9 |
-| RB10 | R10B | Lower 8 bits of R10 |
-| RB11 | R11B | Lower 8 bits of R11 |
-| RB12 | R12B | Lower 8 bits of R12 |
-| RB13 | R13B | Lower 8 bits of R13 |
-| RB14 | R14B | Lower 8 bits of R14 |
-| RB15 | R15B | Lower 8 bits of R15 |
+The following table shows how COIL virtual registers map to native ARM64 registers:
 
-### Segment Registers
+### General Purpose Registers
 
-| COIL Register | x86-64 Register | Notes |
-|---------------|-----------------|-------|
-| S0 | SS | Stack segment |
-| S1 | CS | Code segment |
-| S2 | DS | Data segment |
-| S3 | ES | Extra segment |
-| S4 | FS | General purpose |
-| S5 | GS | General purpose |
-
-### Special Registers
-
-| COIL Register | x86-64 Register | Notes |
-|---------------|-----------------|-------|
-| RSP | RSP | Stack pointer |
-| RBP | RBP | Base pointer |
-| RIP | RIP | Instruction pointer |
-| RF  | RFLAGS | Flags register |
+| COIL Register | ARM64 Register | Notes |
+|---------------|----------------|-------|
+| RQ0 | X0 | First parameter, return value |
+| RQ1 | X1 | Second parameter |
+| RQ2 | X2 | Third parameter |
+| RQ3 | X3 | Fourth parameter |
+| RQ4 | X4 | Fifth parameter |
+| RQ5 | X5 | Sixth parameter |
+| RQ6 | X6 | Seventh parameter |
+| RQ7 | X7 | Eighth parameter |
+| RQ8 | X8 | Indirect result location |
+| RQ9-RQ15 | X9-X15 | Temporary registers |
+| RQ16-RQ25 | X16-X25 | Callee-saved registers |
+| RQ26-RQ30 | X26-X30 | Special purpose |
 
 ## Register Fallback Mechanism
 
-When targeting architectures with fewer physical registers than COIL virtual registers, the COIL assembler implements a fallback mechanism:
+When targeting architectures with fewer physical registers than COIL virtual registers, the COIL processor implements a fallback mechanism:
 
 1. Physical registers are assigned to the most frequently used virtual registers
 2. Remaining virtual registers are allocated on the stack
@@ -213,49 +178,16 @@ For example, on x86-32, which lacks the R8-R15 registers:
 
 ## ABI Integration
 
-**None of this is settled on look into [ABI Specification](./abi.md) for more information**
+The virtual register system integrates with the Application Binary Interface (ABI) system described in [abi.md](./abi.md). This integration allows COIL code to use platform-specific calling conventions through an architecture-independent interface.
 
-To facilitate integration with platform-specific ABIs, COIL provides a mechanism to define register usage according to ABI conventions:
-
-```
-.abi_def "abi-name"
-    .arg 0, RQ0    // First argument goes to register RQ0
-    .arg 1, RQ1    // Second argument goes to register RQ1
-    .result RQ0    // Return value placed in RQ0
-.end_abi
-```
-
-This allows COIL code to use ABI-compliant register assignments without hard-coding architecture-specific details.
-
-For common ABIs, COIL provides predefined configurations:
-
-### Linux x86-64 System Call ABI
+For example, a Linux x86-64 system call can be written as:
 
 ```
-.abi_def "abi-linux-x64-syscall"
-    .arg 0, RQ0    // Syscall number in RAX
-    .arg 1, RQ4    // First argument in RDI
-    .arg 2, RQ5    // Second argument in RSI
-    .arg 3, RQ2    // Third argument in RDX
-    .arg 4, RQ8    // Fourth argument in R10
-    .arg 5, RQ9    // Fifth argument in R8
-    .arg 6, RQ10   // Sixth argument in R9
-    .result RQ0    // Return value in RAX
-.end_abi
+// Call using Linux x86-64 syscall ABI
+SYSC abi-linux-x64-syscall, (60, 0), ()  // exit(0)
 ```
 
-### Windows x64 Calling Convention
-
-```
-.abi_def "abi-windows-x64-call"
-  .arg 0, RQ2    // First argument in RCX
-  .arg 1, RQ3    // Second argument in RDX
-  .arg 2, RQ8    // Third argument in R8
-  .arg 3, RQ9    // Fourth argument in R9
-  // Additional arguments on stack
-  .result RQ0    // Return value in RAX
-.end_abi
-```
+The COIL processor will automatically map the virtual registers according to the Linux system call convention.
 
 ## Using Virtual Registers
 
@@ -265,42 +197,33 @@ COIL instructions can reference virtual registers directly:
 // Example of using virtual registers
 MOV RQ0, 42        // Load immediate value 42 into RQ0
 ADD RQ1, RQ0, RQ2  // RQ1 = RQ0 + RQ2
-ADD RQ0, RQ1 // RQ0 = RQ0 + RQ1
 ```
-
-When interfacing with ABIs, the ABI definition can be specified:
-
-```
-// Call using Linux x86-64 syscall ABI
-SYSC abi-linux-x64-syscall, (60, 0), ()
-```
-
-## Optimization Considerations
-
-COIL assemblers should perform the following optimizations when using virtual registers:
-
-1. Register allocation to minimize stack usage
-2. Elimination of unnecessary register moves
-3. Reordering operations to maximize register utilization
-4. Coalescing related operations to minimize register pressure
 
 ## Implementation Requirements
 
-COIL assemblers must:
+COIL processors must:
 
 1. Support all virtual registers defined in this specification
 2. Implement the fallback mechanism for architectures with insufficient physical registers
 3. Support predefined ABI definitions for supported platforms
 4. Allow custom ABI definitions
 
+## Version 1.0.0 Register System Scope
+
+The 1.0.0 release of COIL includes:
+- Complete virtual register system for x86-64 and ARM64 architectures
+- Basic mapping for other major architectures
+- Support for general purpose, special purpose, and segment registers
+- Integration with ABI definitions
+
 ## Future Extensions
 
 Future versions of COIL will extend the virtual register system to include:
 
-1. Floating-point registers
-2. Vector/SIMD registers
+1. Floating-point registers (Version 2.0.0)
+2. Vector/SIMD registers (Version 2.0.0)
 3. Special-purpose registers for additional architectures
-4. Support for other CPU architectures (ARM, RISC-V, etc.)
-5. Support for non-CPU processing units (GPUs, FPGAs, etc.)
+4. Support for more CPU architectures (ARM32, RISC-V, etc.)
+5. Support for non-CPU processing units (GPUs, FPGAs, etc.) (Version 3.0.0)
 
 These extensions will be defined in later specification versions.

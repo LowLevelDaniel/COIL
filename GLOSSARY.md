@@ -1,6 +1,8 @@
-# COIL Terminology Glossary
+# COIL Terminology Glossary (Version 1.0.0)
 
-This glossary clarifies key terminology used in the COIL ecosystem to ensure consistent understanding among contributors.
+This glossary clarifies key terminology used in the COIL ecosystem to ensure consistent understanding among contributors and implementers.
+
+**IMPORTANT NOTE:** This glossary is part of the COIL specification documentation. It describes concepts that would be implemented in actual COIL tools, but this repository contains only documentation, not implementation code.
 
 ## Core Concepts and Components
 
@@ -25,16 +27,16 @@ A program that combines one or more NCOF files to produce an executable binary. 
 ## Abstraction Levels
 
 ### RAW (Level 0)
-COIL code with no dependencies or library requirements. This level is designed for bare metal environments and embedded systems where size and direct hardware control are critical.
+COIL code with no dependencies or library requirements. This level is designed for bare metal environments and embedded systems where size and direct hardware control are critical. This is the only level fully defined in version 1.0.0 of the specification.
 
 ### SSTD (Level 1 - Simple Standard)
-COIL code using the Simple Standard library, which can be statically linked. Suitable for environments with minimal operating system support but where some standard functionality is needed.
+COIL code using the Simple Standard library, which can be statically linked. Suitable for environments with minimal operating system support but where some standard functionality is needed. This level will be fully defined in version 2.0.0.
 
 ### ESTD (Level 2 - Extended Standard)
-COIL code using the Extended Standard library, which typically requires dynamic linking and a full operating system environment. Provides comprehensive functionality for application development.
+COIL code using the Extended Standard library, which typically requires dynamic linking and a full operating system environment. Provides comprehensive functionality for application development. This level will be fully defined in version 2.0.0.
 
 ### GSTD (Level 3 - Graphics Standard)
-COIL code using the Graphics Standard library, which requires display capabilities and extensive operating system support. Designed for applications with graphical user interfaces.
+COIL code using the Graphics Standard library, which requires display capabilities and extensive operating system support. Designed for applications with graphical user interfaces. This level will be fully defined in version 2.0.0.
 
 ## File Formats and Extensions
 
@@ -67,6 +69,22 @@ The defined set of operations in COIL, including their binary encoding, operand 
 ### Type System
 The defined data types in COIL, including their representation, conversion rules, and operations. The type system enables type checking and optimization by the COIL processor.
 
+### ABI (Application Binary Interface)
+The binary interface that defines how function calls operate, how parameters are passed, and how the system interacts with COIL code. ABIs in COIL are defined in a platform-independent way but map to platform-specific conventions.
+
+## Version 1.0.0 Scope
+
+Version 1.0.0 of the COIL specification covers:
+- Core ISA and binary encoding
+- Primitive type system
+- Virtual register system
+- Basic directives
+- Object formats (COF and NCOF)
+- Configuration format
+- ABI specification
+
+Features planned for future versions (like composite types, arrays, and standard libraries) are mentioned in the specification but will be fully defined in subsequent versions.
+
 ## Development Roles
 
 ### Compiler Developer
@@ -79,4 +97,7 @@ Creates the tools that translate COF to NCOF for specific target architectures.
 Creates the tools that combine NCOF files into executable binaries.
 
 ### Library Developer
-Creates standard libraries (SSTD, ESTD, GSTD) that can be used by COIL code.
+Creates standard libraries (SSTD, ESTD, GSTD) that can be used by COIL code (future versions).
+
+### Specification Contributor
+Contributes to the COIL specification documentation by suggesting improvements, identifying issues, or helping to define future features.

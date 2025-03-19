@@ -1,6 +1,8 @@
-# Contributing to COIL
+# Contributing to the COIL Specification
 
 Thank you for your interest in contributing to the Computer Oriented Intermediate Language (COIL) project. This document outlines the process and standards for contribution to ensure the specification's quality and consistency.
+
+**IMPORTANT NOTE:** The COIL repository contains only specification documentation, not implementation code. Contributions should focus on improving the specification itself, not on providing implementations, test suites, or tools.
 
 ## Code of Conduct
 
@@ -10,15 +12,11 @@ We expect all contributors to:
   - Focus on what is best for the community and the project
   - Show empathy towards other community members
 
-## Development Environment
+## Documentation Standards
 
 ### Required Tools
   - Git for version control
   - A markdown editor for documentation
-  - For reference implementation contributions:
-  - C++17 compatible compiler (preferably GCC 9+ or Clang 10+)
-  - CMake 3.15+
-  - Python 3.6+ (for test scripts)
 
 ### Documentation Standards
   - Use clear, concise language
@@ -26,6 +24,7 @@ We expect all contributors to:
   - Follow the existing Markdown style
   - Keep technical documentation separate from usage guides
   - Specify version compatibility for all features
+  - Always clarify that the specification is documentation-only and not an implementation
 
 ## Specification Change Process
 
@@ -62,14 +61,15 @@ Changes to the COIL specification follow a structured process:
     - For docs: `docs/brief-description`
 
 3. **Make Your Changes**
-  - Follow the coding/documentation style of the project
+  - Follow the documentation style of the project
   - Make focused, logical commits with clear messages
-  - Include tests or examples when applicable
+  - Include examples when applicable
 
 4. **Documentation**
   - Update relevant documentation
   - Add clarifying comments for complex parts
   - Ensure versioning information is correctly updated
+  - Always maintain clarity about the documentation-only nature of the repository
 
 5. **Submit a Pull Request**
   - Provide a clear, descriptive title
@@ -80,7 +80,7 @@ Changes to the COIL specification follow a structured process:
 ## Review Process
 
 1. **Initial Review**
-  - Automated checks for formatting and basic correctness
+  - Checks for documentation formatting and basic correctness
   - Maintainer review for scope and approach
 
 2. **Technical Review**
@@ -106,22 +106,35 @@ COIL uses semantic versioning as detailed in [VERSION.md](./VERSION.md):
 - Document which components are affected
 - Note any backward compatibility issues
 
-## Implementation Contributions
+## Types of Contributions
 
-For contributions to reference implementations:
+### Documentation Improvements
+- Clarification of existing specification details
+- Better examples to illustrate concepts
+- Correction of errors or inconsistencies
+- Improved organization or structure
 
-1. **Code Style**
-  - Follow the project's code style guide in `.style-guide.md`
-  - Run linting tools before submission
+### Specification Enhancements
+- New features that extend the capabilities of COIL
+- Refinements to existing features
+- Performance optimization suggestions
+- Cross-platform compatibility improvements
 
-2. **Testing**
-  - Include unit tests for new functionality
-  - Verify backward compatibility
-  - Add to the integration test suite if necessary
+### Use Case Development
+- Documentation of how COIL can be used in specific domains
+- Examples of how COIL could address particular challenges
+- Comparison with other intermediate representations
 
-3. **Performance**
-  - Consider the performance impact of changes
-  - Document performance characteristics of new features
+## Implementation Guidelines
+
+While this repository does not contain implementation code, contributors can suggest implementation guidance that would be useful for those creating COIL tools:
+
+- Architecture-specific mapping suggestions
+- Optimization strategies
+- Resource utilization considerations
+- Platform compatibility notes
+
+Such guidance should be clearly marked as advisory rather than normative specification.
 
 ## Getting Help
 
@@ -129,4 +142,4 @@ For contributions to reference implementations:
 - Ask questions in the relevant issue or PR
 - Reach out to maintainers listed in MAINTAINERS.md
 
-Thank you for contributing to COIL. Your efforts help create a powerful, efficient intermediate language representation for the future of computing.
+Thank you for contributing to the COIL specification. Your efforts help create a powerful, efficient intermediate language representation for the future of computing.

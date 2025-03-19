@@ -11,8 +11,8 @@
 
 <div align="center">
   <!-- Status -->
-  <a href="#roadmap">
-    <img src="https://img.shields.io/badge/status-pre--alpha-orange" alt="Status" />
+  <a href="#current-status">
+    <img src="https://img.shields.io/badge/status-1.0.0-green" alt="Status" />
   </a>
   <!-- License -->
   <a href="LICENSE">
@@ -29,15 +29,14 @@
 - [Core Benefits](#core-benefits)
 - [Project Structure](#project-structure)
 - [Key Concepts](#key-concepts)
-- [Versioning](#versioning)
+- [Current Status](#current-status)
 - [Getting Started](#getting-started)
-- [Roadmap](#roadmap)
 - [Contributing](#contributing)
 - [About the Low Level Team](#about-the-low-level-team)
 
 ## Overview
 
-**WARNING: THIS IS NOT AN IMPLEMENTATION.** This repository contains only the specification for the COIL standard utilizing markdown documentation. It does not include any implementation code, test suites, or development tools.
+**IMPORTANT: THIS REPOSITORY CONTAINS ONLY THE SPECIFICATION DOCUMENTATION.** This is not an implementation of COIL. The repository contains purely markdown documentation describing the COIL standard. It does not include any implementation code, test suites, or development tools.
 
 COIL is a binary language format designed to serve as an optimal intermediate representation between high-level languages and native machine code. Unlike traditional bytecode formats that require runtime interpretation, COIL is designed for direct translation to native code while preserving architecture independence and optimization opportunities.
 
@@ -63,10 +62,13 @@ COIL aims to provide a unified target for language implementers while giving low
   - `dir.md` - Assembler directives documentation
   - `obj.md` - Object format specifications (COF and NCOF)
   - `conf.md` - Configuration format specification
+  - `abi.md` - Application Binary Interface specification
   - `std.md` - Standard library documentation (future versions)
 - `VERSION.md` - Versioning scheme and compatibility guarantees
 - `CONTRIBUTING.md` - Contribution guidelines
+- `GLOSSARY.md` - Terminology reference
 - `CEL-GRAMMAR.md` - COIL Explanatory Language specification
+- `ROADMAP.md` - Development trajectory and milestones
 - `LICENSE` - Project license (Unlicense)
 
 ## Key Concepts
@@ -78,61 +80,61 @@ COIL defines several abstraction levels to accommodate different use cases:
 1. **RAW (Level 0)**: No dependencies, suitable for bare metal environments
 
 Future versions will define additional abstraction levels:
-2. **SSTD (Level 1)**: Simple Standard library 
-3. **ESTD (Level 2)**: Extended Standard library for OS environments
-4. **GSTD (Level 3)**: Graphics Standard library for display systems
+2. **SSTD (Level 1)**: Simple Standard library (planned for v2.0.0)
+3. **ESTD (Level 2)**: Extended Standard library for OS environments (planned for v2.0.0)
+4. **GSTD (Level 3)**: Graphics Standard library for display systems (planned for v2.0.0)
 
 ### Object Formats
 
 COIL defines two primary object formats:
 
 - **COIL Object Format (COF)**: Output from compilers targeting COIL
-- **Native COIL Object Format (NCOF)**: Output from COIL assemblers for linkers
+- **Native COIL Object Format (NCOF)**: Output from COIL processors for linkers
 
 ### COIL Explanatory Language (CEL)
 
-CEL is a human-readable representation of COIL binary code, similar to assembly language but with COIL-specific features. It provides a convenient way to write and understand COIL code before binary translation.
+CEL is a human-readable representation of COIL binary code, similar to assembly language but with COIL-specific features. It provides a convenient way to document and understand COIL code in the specification. Note that CEL is not a programming language that gets compiled, but a documentation tool used for explaining the COIL binary format.
 
-## Versioning
+## Current Status
 
-COIL follows a strict semantic versioning scheme defined in [VERSION.md](./VERSION.md):
+COIL is now at version 1.0.0, representing the first stable release with backward compatibility guarantees. This version includes:
 
-- **MAJOR**: Breaking changes to binary format or core semantics
-- **MINOR**: New features with backward compatibility
-- **PATCH**: Bug fixes and specification clarifications
+- Complete specification of the core instruction set
+- Finalized binary formats (COF and NCOF)
+- Virtual register system for x86-64 and ARM architectures
+- Primitive type system (integers, floating-point)
+- ABI integration for common platforms
+- Consistent instruction encoding format
 
-Pre-1.0.0 versions are considered unstable and may introduce breaking changes in minor versions.
+**Important note:** Version 1.0.0 intentionally focuses on the core specification only. More advanced features such as composite types, arrays, and standard libraries are planned for future versions (see ROADMAP.md).
 
 ## Getting Started
 
-> Note: COIL is currently in pre-alpha stage. This repository contains only specification documentation.
-
-### Learning COIL
+As this repository contains only specification documentation, the best way to learn about COIL is to read the documentation in the following order:
 
 1. Start with the [Overview](./coil/OVERVIEW.md) to understand COIL's design philosophy
 2. Explore the [Instruction Set Architecture](./coil/isa.md) and [Type System](./coil/type.md)
-3. Learn about the [COIL Explanatory Language](./CEL-GRAMMAR.md) for human-readable COIL
+3. Learn about the [COIL Explanatory Language](./CEL-GRAMMAR.md) for understanding COIL examples
+4. Review the [Object Format](./coil/obj.md) to understand how COIL is represented in binaries
+5. Check the [Virtual Register System](./coil/reg.md) to understand cross-platform register access
 
-## Roadmap to 1.0.0
-
-- [x] Initial specification
-- [x] Core design principles documentation
-- [ ] Complete ISA definition
-- [ ] Finalized type system specification
-- [ ] Finalized binary format specification
-- [ ] Comprehensive documentation
-
-See [ROADMAP.md](./ROADMAP.md) for the complete development trajectory.
+If you're interested in implementing COIL tools, the specification provides all the details needed to create:
+- Compilers that generate COIL code from high-level languages
+- COIL processors that translate COIL to native code
+- Linkers that handle NCOF files
+- Binary utilities for working with COIL files
 
 ## Contributing
 
-We welcome contributions to the COIL project! Please see our [Contributing Guidelines](./CONTRIBUTING.md) for more information on how to get involved.
+We welcome contributions to the COIL specification! Please see our [Contributing Guidelines](./CONTRIBUTING.md) for more information on how to get involved.
 
-The best ways to contribute currently are:
+The best ways to contribute to the documentation are:
 - Reviewing and providing feedback on specifications
 - Identifying gaps or inconsistencies in documentation
 - Proposing enhancements to the language design
 - Improving clarity and completeness of documentation
+
+Note that contributions should focus on improving the specification documentation. Implementation code, tools, or test suites should be developed as separate projects.
 
 ## About the Low Level Team
 

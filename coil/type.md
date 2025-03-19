@@ -1,35 +1,37 @@
-# Type System (Version 0.1.0)
+# Type System (Version 1.0.0)
 
-The COIL type system provides a platform-independent way to define and manipulate data types across different architectures. This specification defines the primitive types supported in COIL version 0.1.0.
+The COIL type system provides a platform-independent way to define and manipulate data types across different architectures. This specification defines the primitive types supported in COIL version 1.0.0.
+
+**IMPORTANT NOTE:** This document is part of the COIL specification documentation. It does not contain implementation code, but rather describes how the COIL type system should function when implemented.
 
 ## Type Encoding
 
-type is just a value from 0 to 255. Type can be followed by some optional data which isn't specified in the normal opcode but assumed to come when type: uint8_t is used. For example in the future with anonymous structures which could have the full type information in the instruction. The first value specifies what should be expected to be parsed.
+The type in COIL is represented as a value from 0 to 255. A type can be followed by optional data which isn't specified in the normal opcode but is assumed to be present when type: uint8_t is used. For example, in future versions, anonymous structures could have their full type information included in the instruction. The first value specifies what should be expected to be parsed.
 
 ```c
 enum type {
-  // Primitives (x00 - x0F)
-  COIL_TYPE_INT = 0x00, // expect another uint8_t value describing the width
-  COIL_TYPE_UINT = 0x01, // expect another uint8_t value describing the width
+  // Primitives (0x00 - 0x0F)
+  COIL_TYPE_INT = 0x00,   // expect another uint8_t value describing the width
+  COIL_TYPE_UINT = 0x01,  // expect another uint8_t value describing the width
   COIL_TYPE_FLOAT = 0x02, // expect another uint8_t value describing the width
   
   // Extended (0x10 - 0x1F)
-  COIL_TYPE_VEC = 0x10,
-
-  // Composite (0x20 - 0x3F)
-  COIL_TYPE_STRUCT = 0x20, // padded memory
-  COIL_TYPE_UNION  = 0x21,  // alias the same memory
-  COIL_TYPE_PACK   = 0x22,   // structure without padding
+  COIL_TYPE_VEC = 0x10,   // Reserved for future use in v2.0.0
   
-  // Memory (0x40 - 0x5F)
-  COIL_TYPE_ARR = 0x40,
-
+  // Composite (0x20 - 0x3F) - Reserved for future use in v2.0.0
+  COIL_TYPE_STRUCT = 0x20, // padded memory (future)
+  COIL_TYPE_UNION  = 0x21, // alias the same memory (future)
+  COIL_TYPE_PACK   = 0x22, // structure without padding (future)
+  
+  // Memory (0x40 - 0x5F) - Reserved for future use in v2.0.0
+  COIL_TYPE_ARR = 0x40,   // Array type (future)
+  
   // Other (0xF0 - 0xFF)
-  COIL_TYPE_VOID = 0xF0
-  COIL_TYPE_BOOL = 0xF1, // only requires 1 bit and can be optimized into bit maps
-  COIL_TYPE_LINT = 0xF2, // the largest native integer supported
-  COIL_TYPE_FINT = 0xF3, // the fastest native ineteger supported
-  COIL_TYPE_PTR  = 0xF4,  // the native pointer type 
+  COIL_TYPE_VOID = 0xF0,  // Void type (no value)
+  COIL_TYPE_BOOL = 0xF1,  // Boolean (only requires 1 bit and can be optimized into bit maps)
+  COIL_TYPE_LINT = 0xF2,  // The largest native integer supported
+  COIL_TYPE_FINT = 0xF3,  // The fastest native integer supported
+  COIL_TYPE_PTR  = 0xF4,  // The native pointer type 
   COIL_TYPE_PARAM2 = 0xFD, // certain instructions support a parameter and this is the type format for the operand
   COIL_TYPE_PARAM1 = 0xFE, // certain instructions support a parameter and this is the type format for the operand
   COIL_TYPE_PARAM0 = 0xFF, // certain instructions support a parameter and this is the type format for the operand
@@ -45,11 +47,11 @@ Parameters provide additional information about how the instruction should be ex
 // For COIL_CF_BRC
 enum cond_parameter : uint8_t {
   COIL_BRIF_EQ   = 0x00, // Equal
-  COIL_BRIF_NE   = 0x00, // Not equal
-  COIL_BRIF_LT   = 0x00, // Less than
-  COIL_BRIF_LE   = 0x00, // Less than or equal
-  COIL_BRIF_GT   = 0x00, // Greater than
-  COIL_BRIF_GE   = 0x00, // Greater than or equal
+  COIL_BRIF_NE   = 0x01, // Not equal
+  COIL_BRIF_LT   = 0x02, // Less than
+  COIL_BRIF_LE   = 0x03, // Less than or equal
+  COIL_BRIF_GT   = 0x04, // Greater than
+  COIL_BRIF_GE   = 0x05, // Greater than or equal
 }
 ```
 
@@ -77,7 +79,6 @@ enum memory_qualifier : uint8_t {
 }
 ```
 
-
 ## Type Conversions
 
 COIL supports both implicit and explicit type conversions:
@@ -103,24 +104,33 @@ All other conversions must be explicit using the appropriate conversion instruct
 
 ## Type Safety
 
-COIL is a strongly-typed intermediate language. Type checking is performed by the COIL assembler to ensure type compatibility in operations. Explicit conversions must be used when required.
+COIL is a strongly-typed intermediate language. Type checking is performed by the COIL processor to ensure type compatibility in operations. Explicit conversions must be used when required.
 
 ## Type Implementation Requirements
 
-COIL assemblers must support all primitive types defined in this specification, even on architectures that do not natively support them. For example:
+COIL processors must support all primitive types defined in this specification, even on architectures that do not natively support them. For example:
 
 1. 64-bit integers must be supported on 32-bit architectures through emulation
 2. Floating-point types must be supported on architectures without FPUs through software emulation
 3. 128-bit types may be emulated through pairs of 64-bit values
 
+## Version 1.0.0 Type System Scope
+
+The 1.0.0 release of COIL intentionally focuses on a solid foundation of primitive types:
+- Integer types (signed and unsigned, various widths)
+- Floating-point types
+- Boolean type
+- Void type
+- Native-sized types (pointer, largest/fastest integer)
+
 ## Future Extensions
 
 Future versions of COIL will extend the type system to include:
 
-1. Composite types (structures, unions)
-2. Array types
-3. Vector types for SIMD operations
-4. Abstract width types
-5. More specialized numeric types
+1. Composite types (structures, unions) - Version 2.0.0
+2. Array types - Version 2.0.0
+3. Vector types for SIMD operations - Version 2.0.0
+4. Abstract width types - Version 2.0.0
+5. More specialized numeric types - Version 2.0.0
 
-These extensions will be defined in later specification versions.
+These extensions will be defined in later specification versions, but the encoding space has already been reserved in the type enumeration to ensure forward compatibility.

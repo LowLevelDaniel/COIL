@@ -1,6 +1,8 @@
-# Directives Binary Format (Version 0.1.0)
+# Directives Binary Format (Version 1.0.0)
 
-COIL directives are binary structures within the COIL Object Format (COF) that control aspects of the assembly process. Unlike instructions, directives do not translate directly to executable operations but instead guide the COIL assembler in processing and transforming the binary code.
+COIL directives are binary structures within the COIL Object Format (COF) that control aspects of the assembly process. Unlike instructions, directives do not translate directly to executable operations but instead guide the COIL processor in processing and transforming the binary code.
+
+**IMPORTANT NOTE:** This document is part of the COIL specification documentation. It does not contain implementation code, but rather describes how the directive binary format should function when implemented.
 
 ## Binary Structure
 
@@ -85,14 +87,14 @@ Binary format:
 [0xD0 (DIR_OPCODE_VERSION)][0x00 (reserved)][0x03 0x00 (length)][major: uint8_t][minor: uint8_t][patch: uint8_t]
 ```
 
-Example (for version 0.1.0):
+Example (for version 1.0.0):
 ```
-D0 00 03 00 00 01 00
+D0 00 03 00 01 00 00
 ```
 
 CEL representation (for documentation):
 ```
-version 0.1.0
+.version 1.0.0
 ```
 
 ### Target Directive
@@ -125,7 +127,7 @@ D1 00 02 00 02 00
 
 CEL representation:
 ```
-target x86-64
+.target x86-64
 ```
 
 ### Section Directive
@@ -149,7 +151,7 @@ D2 01 01 00 01
 
 CEL representation:
 ```
-section .text, "x"
+.section .text, "x"
 ```
 
 ### Symbol Directive
@@ -168,7 +170,7 @@ D3 02 05 00 04 6D 61 69 6E
 
 CEL representation:
 ```
-global main
+.global main
 ```
 
 ### Data Directive
@@ -187,7 +189,7 @@ D5 01 03 00 12 34 56
 
 CEL representation:
 ```
-byte 0x12, 0x34, 0x56
+.byte 0x12, 0x34, 0x56
 ```
 
 ### ABI Definition Directive
@@ -212,10 +214,10 @@ D6 02 00 00 // End ABI
 
 CEL representation:
 ```
-abi_def "my-abi"
-  arg 0, RQ0  // Return value
-  arg 1, RQ1  // First argument
-end_abi
+.abi_def "my-abi"
+  .arg 0, RQ0  // Return value
+  .arg 1, RQ1  // First argument
+.end_abi
 ```
 
 ### Feature Control Directive
@@ -236,27 +238,26 @@ D7 01 02 00 02 01
 
 CEL representation:
 ```
-feature avx2, on
+.feature avx2, on
 ```
 
 ### Optimization Control Directive
 
-Sets the optimization level for the assembler.
+Sets the optimization level for the processor.
 
 Binary format:
 ```
 [0xD8 (DIR_OPCODE_OPTIMIZE)][0x00 (reserved)][0x01 0x00 (length)][level: uint8_t]
 ```
 
-Example (optimization level
- 2):
+Example (optimization level 2):
 ```
 D8 00 01 00 02
 ```
 
 CEL representation:
 ```
-optimize 2
+.optimize 2
 ```
 
 ## Directives in the COIL Object Format
@@ -276,11 +277,11 @@ In the COIL binary format, directives and instructions are distinguished by thei
 2. **Directives**: Use opcode range 0xD0-0xDF
 3. **Extension area**: 0xE0-0xFF reserved for implementation-specific extensions
 
-This clear separation allows the COIL assembler to identify and process directives differently from instructions during the binary translation process.
+This clear separation allows the COIL processor to identify and process directives differently from instructions during the binary translation process.
 
 ## Implementation Requirements
 
-COIL assemblers must:
+COIL processors must:
 
 1. Recognize all standard directive binary formats
 2. Process directives correctly according to their defined semantics
@@ -294,14 +295,22 @@ While the above describes the actual binary representation of directives in COIL
 
 It's important to understand that CEL is not COIL itself, but rather a representation used for documentation and explanation. COIL is always a binary format, and directives in COIL are encoded as binary structures as described above.
 
+## Version 1.0.0 Directives Scope
+
+The 1.0.0 release of COIL includes:
+- Complete binary format for all core directives
+- Full specification of directive qualifiers and parameters
+- Integration with the COIL Object Format
+- Documentation of CEL representation for human readability
+
 ## Future Extensions
 
 Future versions of COIL will extend the directive binary format to include:
 
-1. More sophisticated conditional assembly directives
-2. Enhanced debugging directives
-3. Module and namespace management
-4. Interface declarations
-5. More powerful optimization controls
+1. More sophisticated conditional assembly directives (Version 2.0.0)
+2. Enhanced debugging directives (Version 2.0.0)
+3. Module and namespace management (Version 2.0.0)
+4. Interface declarations (Version 2.0.0)
+5. More powerful optimization controls (Version 2.0.0)
 
 These extensions will be defined in later specification versions and will maintain backward compatibility where possible.

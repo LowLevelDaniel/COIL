@@ -1,6 +1,6 @@
-# Application Binary Interface (ABI) Binary Format (Version 0.1.0)
+# Application Binary Interface (ABI) Binary Format
 
-The COIL ABI (Application Binary Interface) defines binary structures within the COIL Object Format (COF) that specify calling conventions, parameter passing, and register usage. This document details the binary representation of ABI definitions and their application in COIL binaries.
+The COIL ABI (Application Binary Interface) defines binary structures within the COIL Object Format (COF) that specify calling conventions, parameter passing, and register usage. This document consolidates all ABI-related information in the COIL specification.
 
 ## Binary Structure
 
@@ -119,6 +119,15 @@ For system calls, a similar pattern is used:
 [SYSC opcode][ABI qualifier][syscall number operand][arguments...]
 ```
 
+## ABI Integration with Virtual Register System
+
+The ABI system directly integrates with the COIL virtual register system by specifying the mapping between function arguments and virtual registers. The COIL processor uses this information to:
+
+1. Generate correct register assignments for function calls
+2. Preserve necessary registers according to ABI rules
+3. Manage stack frame layout for arguments that don't fit in registers
+4. Handle return values appropriately
+
 ## Standard ABI Binary Representations
 
 COIL defines several standard ABIs with their binary representations:
@@ -190,64 +199,9 @@ The metadata section for ABIs has the format:
 [Mapping tables...]
 ```
 
-## ABI and Virtual Register Integration
-
-The ABI system directly integrates with the COIL virtual register system by specifying the mapping between function arguments and virtual registers. The COIL assembler uses this information to:
-
-1. Generate correct register assignments for function calls
-2. Preserve necessary registers according to ABI rules
-3. Manage stack frame layout for arguments that don't fit in registers
-4. Handle return values appropriately
-
-## Binary Example
-
-Complete binary example of an ABI definition in a COIL configuration file:
-
-```
-// Offset 0x000: ABI entry for System V x86-64
-00 00 00 10  // name_offset = 0x10 (offset to "system_v_x64")
-06 00        // arg_count = 6
-05 00        // flags = 0x05 (ABI_FLAG_PRESERVES_SP | ABI_FLAG_CALLER_CLEANUP)
-50 00 00 00  // mapping_offset = 0x50
-0E 00 00 00  // mapping_count = 14
-00 00 00 00  // padding
-
-// Offset 0x010: String "system_v_x64\0"
-73 79 73 74 65 6D 5F 76 5F 78 36 34 00
-
-// Offset 0x050: Mapping table (first few entries)
-00 00        // arg_index = 0 (return value)
-00 00        // reg_type = 0 (GPR)
-00 00 00 00  // reg_index = 0 (RAX/RQ0)
-FF FF FF FF  // reg_mask = 0xFFFFFFFF (full register)
-00 00 00 00  // padding
-
-01 00        // arg_index = 1 (first argument)
-00 00        // reg_type = 0 (GPR)
-04 00 00 00  // reg_index = 4 (RDI/RQ4)
-FF FF FF FF  // reg_mask = 0xFFFFFFFF (full register)
-00 00 00 00  // padding
-
-// ...more mappings...
-```
-
-## COIL Explanatory Language (CEL) Representation
-
-For documentation purposes, ABIs can be represented in COIL Explanatory Language (CEL). However, it's important to remember that CEL is not COIL itself; COIL is always a binary format.
-
-CEL representation of an ABI:
-```
-abi_def "system_v_x64"
-  arg 0, RQ0      # Return value in RAX (RQ0)
-  arg 1, RQ4      # First integer argument in RDI (RQ4)
-  arg 2, RQ5      # Second integer argument in RSI (RQ5)
-  # ...more mappings...
-end_abi
-```
-
 ## Implementation Requirements
 
-COIL assemblers must:
+COIL processors must:
 
 1. Correctly parse and interpret ABI binary structures
 2. Apply ABI rules when generating native code for function calls
@@ -266,3 +220,4 @@ Future versions of COIL will extend the ABI binary format to include:
 5. Support for more specialized calling conventions
 
 These extensions will maintain backward compatibility with the format defined here.
+

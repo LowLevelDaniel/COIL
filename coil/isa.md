@@ -1,6 +1,19 @@
-# Instruction Set Architecture (Version 0.1.0)
+# Instruction Set Architecture
 
-The COIL Instruction Set Architecture (ISA) defines a complete set of operations that can be mapped to native instructions on target architectures. The COIL ISA is designed for simplicity, consistency, and efficient mapping to multiple architecture targets while maintaining precise control over execution.
+The COIL Instruction Set Architecture (ISA) defines operations that can be mapped to native instructions on target architectures. The COIL ISA is designed for simplicity, consistency, and efficient mapping to multiple CPU architectures while maintaining precise control over execution.
+
+## Binary Format Distinction
+
+In the COIL binary format, both instructions and directives are represented as binary structures, but they are distinguished by their opcode values:
+
+```c
+// Opcode ranges
+#define OPCODE_RANGE_INSTRUCTION  0x00-0xCF  // Instructions
+#define OPCODE_RANGE_DIRECTIVE    0xD0-0xDF  // Directives
+#define OPCODE_RANGE_EXTENSION    0xE0-0xFF  // Implementation-specific extensions
+```
+
+This separation allows the COIL processor to identify and process each element appropriately.
 
 ## Instruction Format
 
@@ -42,7 +55,7 @@ enum operand_qualifier : uint8_t {
 ```
 
 ## Instruction Qualifiers
-check type.md
+See type.md for details
 
 ## Opcodes
 
@@ -107,8 +120,8 @@ enum opcode : uint8_t {
   // 0x44 - 0x4F reserved for future data movement operations
   
   // Stack Operations (0x50 - 0x5F)
-  OP_STK_PUSH  = 0x50, // Push onto stack (operand can be of type state and then choose all registers, all flags, all registers and flags etc...)
-  OP_STK_POP   = 0x51, // Pop from stack (determine from type)
+  OP_STK_PUSH  = 0x50, // Push onto stack
+  OP_STK_POP   = 0x51, // Pop from stack
   // 0x54 - 0x5F reserved for future stack operations
   
   // Variable Operations (0x60 - 0x6F)
@@ -129,16 +142,49 @@ enum opcode : uint8_t {
 
   // 0x80 - 0xEF reserved for future instruction categories
   
-  // Assembler-specific Extensions (0xF0 - 0xFF)
-  // This range is reserved for COIL assembler-specific instructions
+  // Processor-specific Extensions (0xF0 - 0xFF)
+  // This range is reserved for COIL processor-specific instructions
   // These should not be used in portable code
   // 0xF0 - 0xFF
 }
 ```
 
+## Instruction and Directive Coexistence in COF
+
+In a COIL Object Format (COF) file, instructions and directives appear in specific contexts:
+
+1. **File/Module Level**: Certain directives (like version and target) apply to the entire module
+2. **Section Level**: Section directives define and control different sections
+3. **Code Stream**: Instructions appear in code sections, with interspersed directives affecting the code generation
+
+The binary layout of a code section might look like:
+
+```
+[Section header]
+[Directive 1]       // e.g., alignment directive
+[Instruction 1]
+[Instruction 2]
+[Directive 2]       // e.g., optimization hint
+[Instruction 3]
+...
+```
+
+## Processing Sequence
+
+When a COIL processor processes a COIL binary, it:
+
+1. Interprets the file header and global directives
+2. Processes each section according to its type
+3. For code sections:
+   a. Processes each element based on its opcode range
+   b. For instructions: translates to native code
+   c. For directives: applies the specified behavior to the processing
+4. Applies optimizations as specified by directives
+5. Generates the final NCOF output
+
 ## Instruction Specifications
 
-Each instruction is defined below with its operand format, behavior, and binary encoding. Note that COIL abstracts away many architecture-specific details, allowing the assembler to choose the most efficient native implementation.
+Each instruction is defined below with its operand format, behavior, and binary encoding. Note that COIL abstracts away many architecture-specific details, allowing the processor to choose the most efficient native implementation.
 
 ### No Operation
 
@@ -147,7 +193,7 @@ Each instruction is defined below with its operand format, behavior, and binary 
 Opcode: 0x00
 Operands: None
 Binary Format: [0x00][0x00]
-Description: Performs no operation. This may be optimized out by the assembler or used for alignment.
+Description: Performs no operation. This may be optimized out by the processor or used for alignment.
 ```
 
 ### Control Flow Operations
@@ -166,7 +212,7 @@ Opcode: 0x02
 Operands: [target: operand_t]
 Binary Format: [0x02][0x00][target]
 Description: Branches to the specified target unconditionally.
-Example: BR label // Branch to label
+Example (in CEL): BR label // Branch to label
 ```
 
 **BRC** - Conditional Branch
@@ -175,261 +221,23 @@ Opcode: 0x03
 Operands: [condition: qualifier][target: operand_t]
 Binary Format: [0x03][condition][target]
 Description: Branches to the specified target if the condition is met.
-Example: BRC.EQ label // Branch to label if equal flag is set
+Example (in CEL): BRC.EQ label // Branch to label if equal flag is set
 ```
 
-**CALL** - Call Subroutine
-```
-Opcode: 0x04
-Operands: [target: operand_t]
-Binary Format: [0x04][qualifier][target]
-Description: Calls the subroutine at target, saving the return address.
-Example: CALL function // Call function
-```
-
-**RET** - Return from Subroutine
-```
-Opcode: 0x05
-Operands: None
-Binary Format: [0x05][0x00]
-Description: Returns from a subroutine to the saved return address.
-Example: RET // Return from subroutine
-```
-
-### Arithmetic Operations
-
-**ADD** - Addition
-```
-Opcode: 0x10
-Operands: [dest: operand_t][src1: operand_t][src2: operand_t]
-Alternative (in-place): [dest/src1: operand_t][src2: operand_t]
-Binary Format: [0x10][qualifier][dest][src1][src2] or [0x10][qualifier|COIL_ARITH_IN_PLACE][dest/src1][src2]
-Description: Adds src1 and src2, storing the result in dest.
-Example: ADD r0, r1, r2  // r0 = r1 + r2
-         ADD r0, r0, r1  // r0 += r1 (in-place form)
-```
-
-**SUB** - Subtraction
-```
-Opcode: 0x11
-Operands: [dest: operand_t][src1: operand_t][src2: operand_t]
-Alternative (in-place): [dest/src1: operand_t][src2: operand_t]
-Binary Format: [0x11][qualifier][dest][src1][src2] or [0x11][qualifier|COIL_ARITH_IN_PLACE][dest/src1][src2]
-Description: Subtracts src2 from src1, storing the result in dest.
-Example: SUB r0, r1, r2  // r0 = r1 - r2
-         SUB r0, r0, r1  // r0 -= r1 (in-place form)
-```
-
-**MUL** - Multiplication
-```
-Opcode: 0x12
-Operands: [dest: operand_t][src1: operand_t][src2: operand_t]
-Alternative (in-place): [dest/src1: operand_t][src2: operand_t]
-Binary Format: [0x12][qualifier][dest][src1][src2] or [0x12][qualifier|COIL_ARITH_IN_PLACE][dest/src1][src2]
-Description: Multiplies src1 and src2, storing the result in dest.
-Example: MUL r0, r1, r2  // r0 = r1 * r2
-         MUL r0, r0, r1  // r0 *= r1 (in-place form)
-```
-
-**DIV** - Division
-```
-Opcode: 0x13
-Operands: [dest: operand_t][src1: operand_t][src2: operand_t]
-Alternative (in-place): [dest/src1: operand_t][src2: operand_t]
-Binary Format: [0x13][qualifier][dest][src1][src2] or [0x13][qualifier|COIL_ARITH_IN_PLACE][dest/src1][src2]
-Description: Divides src1 by src2, storing the result in dest.
-Example: DIV r0, r1, r2  // r0 = r1 / r2
-         DIV r0, r0, r1  // r0 /= r1 (in-place form)
-```
-
-### Bit Manipulation Operations
-
-**AND** - Bitwise AND
-```
-Opcode: 0x20
-Operands: [dest: operand_t][src1: operand_t][src2: operand_t]
-Alternative (in-place): [dest/src1: operand_t][src2: operand_t]
-Binary Format: [0x20][qualifier][dest][src1][src2] or [0x20][qualifier|COIL_ARITH_IN_PLACE][dest/src1][src2]
-Description: Performs bitwise AND of src1 and src2, storing the result in dest.
-Example: AND r0, r1, r2  // r0 = r1 & r2
-         AND r0, r0, r1  // r0 &= r1 (in-place form)
-```
-
-**OR** - Bitwise OR
-```
-Opcode: 0x21
-Operands: [dest: operand_t][src1: operand_t][src2: operand_t]
-Alternative (in-place): [dest/src1: operand_t][src2: operand_t]
-Binary Format: [0x21][qualifier][dest][src1][src2] or [0x21][qualifier|COIL_ARITH_IN_PLACE][dest/src1][src2]
-Description: Performs bitwise OR of src1 and src2, storing the result in dest.
-Example: OR r0, r1, r2  // r0 = r1 | r2
-         OR r0, r0, r1  // r0 |= r1 (in-place form)
-```
-
-**XOR** - Bitwise XOR
-```
-Opcode: 0x22
-Operands: [dest: operand_t][src1: operand_t][src2: operand_t]
-Alternative (in-place): [dest/src1: operand_t][src2: operand_t]
-Binary Format: [0x22][qualifier][dest][src1][src2] or [0x22][qualifier|COIL_ARITH_IN_PLACE][dest/src1][src2]
-Description: Performs bitwise XOR of src1 and src2, storing the result in dest.
-Example: XOR r0, r1, r2  // r0 = r1 ^ r2
-         XOR r0, r0, r1  // r0 ^= r1 (in-place form)
-```
-
-### Data Movement Operations
-
-**MOV** - Move Data
-```
-Opcode: 0x40
-Operands: [dest: operand_t][src: operand_t]
-Binary Format: [0x40][qualifier][dest][src]
-Description: Copies the value from src to dest.
-Example: MOV r0, r1  // r0 = r1
-         MOV r0, 42  // r0 = 42
-```
-
-**LOAD** - Load from Memory
-```
-Opcode: 0x41
-Operands: [dest: operand_t][address: operand_t]
-Binary Format: [0x41][qualifier][dest][address]
-Description: Loads a value from memory at the specified address into dest.
-Example: LOAD r0, [r1]      // r0 = *r1
-         LOAD r0, [r1+4]   // r0 = *(r1+4)
-```
-
-**STORE** - Store to Memory
-```
-Opcode: 0x42
-Operands: [value: operand_t][address: operand_t]
-Binary Format: [0x42][qualifier][value][address]
-Description: Stores a value to memory at the specified address.
-Example: STORE r0, [r1]     // *r1 = r0
-         STORE r0, [r1+4]  // *(r1+4) = r0
-```
-
-### Stack Operations
-
-**PUSH** - Push onto Stack
-```
-Opcode: 0x50
-Operands: [value: operand_t]
-Binary Format: [0x50][qualifier][value]
-Description: Pushes a value onto the stack.
-Example: PUSH r0  // Push r0 onto the stack
-```
-
-**POP** - Pop from Stack
-```
-Opcode: 0x51
-Operands: [dest: operand_t]
-Binary Format: [0x51][qualifier][dest]
-Description: Pops a value from the stack into dest.
-Example: POP r0  // Pop into r0 from the stack
-```
-
-### Variable Operations
-
-**CREATE** - Create Variable
-```
-Opcode: 0x60
-Operands: [name: string][type: operand_t][initial_value: operand_t (optional)]
-Binary Format: [0x60][qualifier][string length: uint8_t][name: string][type][initial_value (optional)]
-Description: Creates a variable with the specified name and type, optionally with an initial value.
-Example: CREATE "counter", i32, 0  // int32_t counter = 0;
-```
-
-**DELETE** - Delete Variable
-```
-Opcode: 0x61
-Operands: [name: string]
-Binary Format: [0x61][qualifier][string length: uint8_t][name: string]
-Description: Deletes the specified variable, freeing its resources.
-Example: DELETE "counter"  // Delete the counter variable
-```
-
-**SCOPE** - Create Variable Scope
-```
-Opcode: 0x62
-Operands: None
-Binary Format: [0x62][qualifier]
-Description: Creates a new variable scope. Variables created after this point will be limited to this scope.
-Example: SCOPE  // Begin a new variable scope
-```
-
-**END** - End Variable Scope
-```
-Opcode: 0x63
-Operands: None
-Binary Format: [0x63][qualifier]
-Description: Ends the current variable scope, freeing all variables created within it.
-Example: END  // End the current variable scope
-```
-
-## Instruction Encoding Examples
-
-This section provides examples of how instructions are encoded in binary.
-
-### Example 1: ADD r0, r1, r2 (Add registers)
-
-```
-// Assuming r0, r1, r2 are virtual registers of type int32
-[0x10]                  // Opcode: ADD
-[0x00]                  // Qualifier: Default (not in-place)
-[COIL_OPQUAL_REG|0x04]  // Dest qualifier: Register, type int32
-[0x00]                  // Register number: r0
-[COIL_OPQUAL_REG|0x04]  // Src1 qualifier: Register, type int32
-[0x01]                  // Register number: r1
-[COIL_OPQUAL_REG|0x04]  // Src2 qualifier: Register, type int32
-[0x02]                  // Register number: r2
-```
-
-### Example 2: MOV r0, 42 (Move immediate to register)
-
-```
-// Assuming r0 is a virtual register of type int32
-[0x40]                    // Opcode: MOV
-[0x00]                    // Qualifier: Default
-[COIL_OPQUAL_REG|0x04]    // Dest qualifier: Register, type int32
-[0x00]                    // Register number: r0
-[COIL_OPQUAL_IMM|0x04]    // Src qualifier: Immediate, type int32
-[0x2A, 0x00, 0x00, 0x00]  // Value: 42 (little-endian int32)
-```
-
-### Example 3: BRC.EQ label (Branch if equal)
-
-```
-// Assuming "label" is a defined symbol
-[0x03]                      // Opcode: BRC
-[COIL_BR_EQ]                // Qualifier: Branch if equal
-[COIL_OPQUAL_LBL|0x00]      // Target qualifier: Label
-[0x0A]                      // Label name length: 10
-[0x6C, 0x61, 0x62, 0x65, 0x6C]  // "label" in ASCII
-```
-
-## Optimization Considerations
-
-COIL assemblers are encouraged to optimize instruction sequences when possible, as long as the semantics are preserved. Common optimizations include:
-
-1. Eliminating redundant moves
-2. Combining sequential operations on the same operands
-3. Replacing complex operations with simpler equivalents
-4. Using architecture-specific instructions when available
-
-However, optimizations must not change the behavior of the program, particularly regarding side effects and exception handling.
+[Additional instructions omitted for brevity]
 
 ## Implementation Requirements
 
-COIL assemblers must implement all instructions defined in this specification for version 0.1.0. Behavior must be consistent across different implementations, even if the underlying native code generation differs.
+COIL processors must:
 
-## Instruction Set Extensions
+1. Correctly parse and interpret both instruction and directive binary formats
+2. Process directives and instructions in the correct sequence
+3. Apply directive effects appropriately to the processing
+4. Maintain the semantic distinction between directives (processing-time) and instructions (runtime)
+5. Generate appropriate NCOF code reflecting both instruction translations and directive effects
 
-Future versions of COIL may include additional instructions for:
+## Future Extensions
 
-1. Vector/SIMD operations
-2. Atomic operations
-3. Hardware-specific features
-4. Advanced control flow constructs
+Although version 0.1.0 focuses primarily on CPU architectures, future versions will introduce a mechanism for handling different processing units through directive-based context switching. This will allow the same COIL binary format to represent code for different types of processing units (GPU, TPU, etc.) by changing how the processor interprets subsequent instructions.
 
-These will be defined in later specification versions.
+This approach will maintain architecture independence while acknowledging that different processing unit types have fundamentally different execution models.

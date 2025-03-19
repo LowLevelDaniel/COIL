@@ -1,4 +1,4 @@
-# Instruction Set Architecture (Version 1.0.0)
+# Instruction Set Architecture (Version 1.0.0) - REVISED
 
 The COIL Instruction Set Architecture (ISA) defines the complete set of operations available in the COIL binary format. This specification documents the binary encoding, behavior, and implementation requirements for all instructions in version 1.0.0.
 
@@ -40,6 +40,8 @@ Where:
 - **type**: Specifies the data type of the operand (see type.md)
 - **data**: The actual data, with size determined by type and qualifier
 
+The type information in operands is used to determine the specific implementation of the operation (e.g., integer addition vs. floating-point addition).
+
 ## Operand Qualifiers
 
 ```c
@@ -58,7 +60,7 @@ enum operand_qualifier : uint8_t {
 
 ## Instruction Opcodes
 
-COIL instructions are organized into logical categories:
+COIL instructions are organized into logical categories. Unlike traditional ISAs, COIL operations are type-agnostic, with the actual implementation determined by the operand types.
 
 ```c
 enum instruction_opcode : uint8_t {
@@ -82,24 +84,20 @@ enum instruction_opcode : uint8_t {
     // 0x0E-0x0F reserved for future control flow operations
     
     // Arithmetic Operations (0x10 - 0x1F)
-    OP_ADD  = 0x10, // Addition
-    OP_SUB  = 0x11, // Subtraction
-    OP_MUL  = 0x12, // Multiplication
-    OP_DIV  = 0x13, // Division
-    OP_MOD  = 0x14, // Modulus
-    OP_NEG  = 0x15, // Negation
-    OP_ABS  = 0x16, // Absolute value
-    OP_INC  = 0x17, // Increment
-    OP_DEC  = 0x18, // Decrement
-    OP_ADDC = 0x19, // Add with carry
-    OP_SUBB = 0x1A, // Subtract with borrow
-    OP_MULH = 0x1B, // Multiplication high bits
-    OP_ADDP = 0x1C, // Add packed (for SIMD)
-    OP_SUBP = 0x1D, // Subtract packed (for SIMD)
-    OP_MULP = 0x1E, // Multiply packed (for SIMD)
-    OP_DIVP = 0x1F, // Divide packed (for SIMD)
+    OP_ADD  = 0x10, // Addition (for any numeric type)
+    OP_SUB  = 0x11, // Subtraction (for any numeric type)
+    OP_MUL  = 0x12, // Multiplication (for any numeric type)
+    OP_DIV  = 0x13, // Division (for any numeric type)
+    OP_MOD  = 0x14, // Modulus (for any numeric type)
+    OP_NEG  = 0x15, // Negation (for any numeric type)
+    OP_ABS  = 0x16, // Absolute value (for any numeric type)
+    OP_INC  = 0x17, // Increment (for any numeric type)
+    OP_DEC  = 0x18, // Decrement (for any numeric type)
+    OP_ADDC = 0x19, // Add with carry (for integer types)
+    OP_SUBB = 0x1A, // Subtract with borrow (for integer types)
+    OP_MULH = 0x1B, // Multiplication high bits (for integer types)
     
-    // Bit Manipulation (0x20 - 0x2F)
+    // Bit Manipulation (0x20 - 0x2F) - Applicable to integer types only
     OP_AND  = 0x20, // Bitwise AND
     OP_OR   = 0x21, // Bitwise OR
     OP_XOR  = 0x22, // Bitwise XOR
@@ -118,17 +116,9 @@ enum instruction_opcode : uint8_t {
     OP_BMSK = 0x2F, // Bit mask
     
     // Comparison Operations (0x30 - 0x3F)
-    OP_CMP  = 0x30, // Compare
-    OP_TEST = 0x31, // Test bits
-    OP_CMPEQ = 0x32, // Compare equal
-    OP_CMPNE = 0x33, // Compare not equal
-    OP_CMPLT = 0x34, // Compare less than
-    OP_CMPLE = 0x35, // Compare less than or equal
-    OP_CMPGT = 0x36, // Compare greater than
-    OP_CMPGE = 0x37, // Compare greater than or equal
-    OP_CMPZ  = 0x38, // Compare to zero
-    OP_CMPNZ = 0x39, // Compare not zero
-    // 0x3A-0x3F reserved for future comparison operations
+    OP_CMP  = 0x30, // Compare values and set flags
+    OP_TEST = 0x31, // Test bits (bitwise AND and set flags, for integer types)
+    // 0x32-0x3F reserved for future comparison operations
     
     // Data Movement (0x40 - 0x4F)
     OP_MOV   = 0x40, // Move data
@@ -193,22 +183,13 @@ enum instruction_opcode : uint8_t {
     OP_BARRIER = 0x8C, // Memory barrier
     // 0x8D-0x8F reserved for future atomic operations
     
-    // Floating Point Operations (0x90 - 0x9F)
-    OP_FADD  = 0x90, // Floating-point addition
-    OP_FSUB  = 0x91, // Floating-point subtraction
-    OP_FMUL  = 0x92, // Floating-point multiplication
-    OP_FDIV  = 0x93, // Floating-point division
-    OP_FREM  = 0x94, // Floating-point remainder
-    OP_FSQRT = 0x95, // Floating-point square root
-    OP_FCEIL = 0x96, // Floating-point ceiling
-    OP_FFLOOR = 0x97, // Floating-point floor
-    OP_FROUND = 0x98, // Floating-point round
-    OP_FTRUNC = 0x99, // Floating-point truncate
-    OP_FABS   = 0x9A, // Floating-point absolute value
-    OP_FNEG   = 0x9B, // Floating-point negation
-    OP_FCMP   = 0x9C, // Floating-point compare
-    OP_FMA    = 0x9D, // Fused multiply-add
-    // 0x9E-0x9F reserved for future floating-point operations
+    // Special Operations (0x90 - 0x9F)
+    OP_SQRT = 0x90, // Square root (for numeric types)
+    OP_FMA  = 0x91, // Fused multiply-add (for numeric types)
+    OP_CEIL = 0x92, // Ceiling (for floating-point types)
+    OP_FLOOR = 0x93, // Floor (for floating-point types)
+    OP_ROUND = 0x94, // Round (for floating-point types)
+    // 0x95-0x9F reserved for future special operations
     
     // Conditional Operations (0xA0 - 0xAF)
     OP_SELECT = 0xA0, // Conditional select
@@ -241,8 +222,6 @@ enum arith_qualifier : uint8_t {
     ARITH_DEFAULT = 0x00,     // Default behavior
     ARITH_SIGNED  = (1 << 0), // Signed operation
     ARITH_SAT     = (1 << 1), // Saturating operation
-    ARITH_FLOAT   = (1 << 2), // Force floating point semantics
-    ARITH_INT     = (1 << 3), // Force integer semantics
     ARITH_TRAP    = (1 << 4), // Trap on overflow
     ARITH_APPROX  = (1 << 5), // Allow approximation
     ARITH_UNCHECKED = (1 << 6), // Assume no overflow
@@ -300,83 +279,29 @@ enum syscall_qualifier : uint8_t {
 };
 ```
 
+## Type-Driven Operation Selection
+
+A key feature of COIL is that the same operation code applies to different data types. The COIL processor selects the appropriate implementation based on the operand types:
+
+1. When operands are integer types, integer arithmetic is used
+2. When operands are floating-point types, floating-point arithmetic is used
+3. When operands are vector types, vector operations are used
+
+This avoids the need for separate operation codes for different data types (e.g., ADD vs. FADD), simplifying the ISA while still providing type-specific optimizations.
+
+### Native Processor Mapping
+
+COIL's design aligns with how processors typically work:
+
+1. **Flag-Setting Comparison**: Most CPUs have a single comparison instruction that sets flags based on the result. COIL's `CMP` instruction follows this design.
+
+2. **Conditional Operations**: Rather than having multiple comparison opcodes (CMPEQ, CMPLT, etc.), COIL uses a single `CMP` instruction followed by conditional branches based on flag states, matching typical processor design.
+
+3. **Type-Based Implementation**: The actual implementation of instructions depends on the operand types, allowing the COIL processor to select the appropriate native instructions without requiring separate COIL opcodes.
+
 ## Detailed Instruction Specifications
 
 Each instruction is defined below with its binary encoding, operands, behavior, and implementation requirements.
-
-### Control Flow Instructions
-
-#### NOP - No Operation
-```
-Opcode: 0x00
-Qualifier: 0x00
-Operands: None
-Binary Format: [0x00][0x00][0x00]
-Description: Performs no operation. May be used for alignment or timing purposes.
-Implementation: May be optimized out if it has no observable effects.
-```
-
-#### BR - Unconditional Branch
-```
-Opcode: 0x02
-Qualifier: 0x00
-Operands: [target: operand_t]
-Binary Format: [0x02][0x00][0x01][target]
-Description: Transfers control to the specified target unconditionally.
-Implementation:
-  - Target may be a code label, address, or register
-  - Must ensure all architectural side effects are handled correctly
-```
-
-#### BRC - Conditional Branch
-```
-Opcode: 0x03
-Qualifier: [condition: branch_qualifier]
-Operands: [target: operand_t]
-Binary Format: [0x03][condition][0x01][target]
-Description: Transfers control to the specified target if the condition is met.
-Implementation:
-  - Conditions are evaluated based on the current state of flags
-  - Should use the most efficient conditional branch instruction available on the target architecture
-```
-
-#### CALL - Call Subroutine
-```
-Opcode: 0x04
-Qualifier: [abi_qualifier: uint8_t]
-Operands: [target: operand_t]
-Binary Format: [0x04][abi_qualifier][0x01][target]
-Description: Calls a subroutine at the specified target, saving the return address.
-Implementation:
-  - Must ensure the return address is saved according to the specified ABI
-  - Must handle register saving as required by the ABI
-  - ABI qualifier of 0x00 uses the default ABI for the platform
-```
-
-#### RET - Return from Subroutine
-```
-Opcode: 0x05
-Qualifier: [abi_qualifier: uint8_t]
-Operands: None or [value: operand_t]
-Binary Format: [0x05][abi_qualifier][0x00] or [0x05][abi_qualifier][0x01][value]
-Description: Returns from a subroutine, optionally with a return value.
-Implementation:
-  - Must restore any registers saved by the corresponding CALL
-  - Must implement the return value according to the ABI
-```
-
-#### SYSC - System Call
-```
-Opcode: 0x09
-Qualifier: [syscall_qualifier: uint8_t]
-Operands: [syscall_number: operand_t][args: operand_t]...
-Binary Format: [0x09][syscall_qualifier][operand_count][syscall_number][args]...
-Description: Performs a system call with the given number and arguments.
-Implementation:
-  - Must map to the appropriate system call mechanism for the target platform
-  - Must ensure arguments are passed according to the platform's system call convention
-  - Should use the most efficient system call instruction available
-```
 
 ### Arithmetic Instructions
 
@@ -388,9 +313,11 @@ Operands: [dest: operand_t][src1: operand_t][src2: operand_t]
 Binary Format: [0x10][arith_qualifier][0x03][dest][src1][src2]
 Description: Adds src1 and src2, storing the result in dest.
 Implementation:
-  - Must handle signed/unsigned distinction based on qualifier
-  - Must handle integer overflow according to qualifier
-  - Should use the most efficient addition instruction available
+  - When operands are integer types, integer addition is used
+  - When operands are floating-point types, floating-point addition is used
+  - When operands are vector types, vector addition is used
+  - Must handle signed/unsigned distinction for integer types based on qualifier
+  - Should use the most efficient addition instruction available for the type
 ```
 
 #### SUB - Subtraction
@@ -401,9 +328,11 @@ Operands: [dest: operand_t][src1: operand_t][src2: operand_t]
 Binary Format: [0x11][arith_qualifier][0x03][dest][src1][src2]
 Description: Subtracts src2 from src1, storing the result in dest.
 Implementation:
-  - Must handle signed/unsigned distinction based on qualifier
-  - Must handle integer overflow according to qualifier
-  - Should use the most efficient subtraction instruction available
+  - When operands are integer types, integer subtraction is used
+  - When operands are floating-point types, floating-point subtraction is used
+  - When operands are vector types, vector subtraction is used
+  - Must handle signed/unsigned distinction for integer types based on qualifier
+  - Should use the most efficient subtraction instruction available for the type
 ```
 
 #### MUL - Multiplication
@@ -414,103 +343,84 @@ Operands: [dest: operand_t][src1: operand_t][src2: operand_t]
 Binary Format: [0x12][arith_qualifier][0x03][dest][src1][src2]
 Description: Multiplies src1 by src2, storing the result in dest.
 Implementation:
-  - Must handle signed/unsigned distinction based on qualifier
-  - Must handle integer overflow according to qualifier
-  - Should use the most efficient multiplication instruction available
+  - When operands are integer types, integer multiplication is used
+  - When operands are floating-point types, floating-point multiplication is used
+  - When operands are vector types, vector multiplication is used
+  - Must handle signed/unsigned distinction for integer types based on qualifier
+  - Should use the most efficient multiplication instruction available for the type
 ```
 
-#### DIV - Division
+### Comparison Instructions
+
+#### CMP - Compare
 ```
-Opcode: 0x13
-Qualifier: [arith_qualifier: uint8_t]
-Operands: [dest: operand_t][src1: operand_t][src2: operand_t]
-Binary Format: [0x13][arith_qualifier][0x03][dest][src1][src2]
-Description: Divides src1 by src2, storing the result in dest.
+Opcode: 0x30
+Qualifier: 0x00
+Operands: [src1: operand_t][src2: operand_t]
+Binary Format: [0x30][0x00][0x02][src1][src2]
+Description: Compares src1 with src2 and sets flags based on the result.
 Implementation:
-  - Must handle signed/unsigned distinction based on qualifier
-  - Must handle division by zero according to qualifier
-  - Should use the most efficient division instruction available
+  - When operands are integer types, integer comparison is used
+  - When operands are floating-point types, floating-point comparison is used
+  - When operands are vector types, vector comparison is used
+  - Must set appropriate flags based on the comparison result
+  - Should use the most efficient comparison instruction available for the type
 ```
 
-### Data Movement Instructions
-
-#### MOV - Move Data
+#### TEST - Test Bits
 ```
-Opcode: 0x40
+Opcode: 0x31
+Qualifier: 0x00
+Operands: [src1: operand_t][src2: operand_t]
+Binary Format: [0x31][0x00][0x02][src1][src2]
+Description: Performs a bitwise AND of src1 and src2 and sets flags based on the result, without storing the result.
+Implementation:
+  - Only applicable to integer types
+  - Sets the zero flag if the result is zero
+  - Sets the sign flag based on the most significant bit of the result
+  - Clears the overflow and carry flags
+  - Often used for efficiently testing if a specific bit is set
+```
+
+### Special Operations
+
+#### SQRT - Square Root
+```
+Opcode: 0x90
 Qualifier: 0x00
 Operands: [dest: operand_t][src: operand_t]
-Binary Format: [0x40][0x00][0x02][dest][src]
-Description: Copies the value from src to dest.
+Binary Format: [0x90][0x00][0x02][dest][src]
+Description: Calculates the square root of src and stores the result in dest.
 Implementation:
-  - Must handle different operand types (immediate, register, memory, etc.)
-  - Should optimize out redundant moves where possible
-```
-
-#### LOAD - Load from Memory
-```
-Opcode: 0x41
-Qualifier: [memory_qualifier: uint8_t]
-Operands: [dest: operand_t][addr: operand_t]
-Binary Format: [0x41][memory_qualifier][0x02][dest][addr]
-Description: Loads a value from memory at addr into dest.
-Implementation:
-  - Must handle memory access according to qualifiers
-  - Should use the most efficient load instruction available
-```
-
-#### STORE - Store to Memory
-```
-Opcode: 0x42
-Qualifier: [memory_qualifier: uint8_t]
-Operands: [addr: operand_t][src: operand_t]
-Binary Format: [0x42][memory_qualifier][0x02][addr][src]
-Description: Stores the value of src to memory at addr.
-Implementation:
-  - Must handle memory access according to qualifiers
-  - Should use the most efficient store instruction available
-```
-
-### Other Important Instructions
-
-#### ENTER - Function Prologue
-```
-Opcode: 0xC0
-Qualifier: [abi_qualifier: uint8_t]
-Operands: [frame_size: operand_t]
-Binary Format: [0xC0][abi_qualifier][0x01][frame_size]
-Description: Sets up a stack frame for a function according to the specified ABI.
-Implementation:
-  - Must save all registers required by the ABI
-  - Must allocate stack space for local variables
-  - Must maintain proper stack alignment
-```
-
-#### LEAVE - Function Epilogue
-```
-Opcode: 0xC1
-Qualifier: [abi_qualifier: uint8_t]
-Operands: None
-Binary Format: [0xC1][abi_qualifier][0x00]
-Description: Cleans up a stack frame when exiting a function.
-Implementation:
-  - Must restore all registers saved by ENTER
-  - Must restore the stack pointer
-  - Must maintain proper stack alignment
+  - When operand is a floating-point type, floating-point square root is used
+  - When operand is an integer type, integer square root is used (possibly with conversion)
+  - Should use the most efficient square root instruction available for the type
 ```
 
 ## Implementation Requirements
 
 COIL processors must adhere to the following requirements:
 
-1. **Instruction Fidelity**: All instructions must be implemented with the semantics defined in this specification.
+1. **Type-Driven Implementation**: Operations must be implemented based on operand types, not just the opcode. The same opcode (e.g., ADD) must work correctly for different data types.
 
-2. **Feature-Based Implementation**: When a native instruction exists that matches the COIL instruction semantics, it should be used. Otherwise, the processor should generate the equivalent functionality through emulation.
+2. **Instruction Fidelity**: All instructions must be implemented with the semantics defined in this specification.
 
-3. **Optimization Freedom**: Processors are free to optimize instruction sequences as long as the observable behavior remains the same.
+3. **Feature-Based Implementation**: When a native instruction exists that matches the COIL instruction semantics, it should be used. Otherwise, the processor should generate the equivalent functionality through emulation.
 
-4. **Error Handling**: Processors should implement architecture-appropriate error handling for exceptional conditions.
+4. **Optimization Freedom**: Processors are free to optimize instruction sequences as long as the observable behavior remains the same.
 
-5. **ABI Compliance**: Instructions that interact with ABIs must follow the ABI definitions in the configuration.
+5. **Error Handling**: Processors should implement architecture-appropriate error handling for exceptional conditions.
+
+6. **ABI Compliance**: Instructions that interact with ABIs must follow the ABI definitions in the configuration.
+
+## Type Resolution Rules
+
+When operands have different types, the COIL processor follows these rules for type resolution:
+
+1. If any operand is floating-point, the operation is performed as floating-point, with integer operands being converted to floating-point.
+2. Otherwise, if any operand is unsigned, the operation is performed as unsigned integer.
+3. Otherwise, the operation is performed as signed integer.
+4. If operands have different widths, they are widened to the widest operand type.
 
 ## Verification
 
@@ -520,6 +430,7 @@ A correctly implemented COIL processor should pass a verification suite that tes
 2. Semantic correctness for each instruction
 3. Proper handling of edge cases
 4. ABI compliance
+5. Type-driven operation selection
 
 Such verification suites are not part of this specification but are recommended for implementations.
 

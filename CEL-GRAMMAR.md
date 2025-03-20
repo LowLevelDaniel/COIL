@@ -57,7 +57,7 @@ Directives use a leading period:
 Example:
 ```
 .version 1.0.0
-.target x86-64
+.target CPU
 .section .text, "x"
 ```
 

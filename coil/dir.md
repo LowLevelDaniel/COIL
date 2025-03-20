@@ -23,7 +23,7 @@ Where:
 COIL reserves the following opcode ranges:
 
 ```c
-// Directive Opcodes (0xD0-0xDF)
+// Directive Opcodes (0xD0-0xEF)
 enum directive_opcode : uint8_t {
     DIR_OPCODE_VERSION   = 0xD0, // Version specification
     DIR_OPCODE_TARGET    = 0xD1, // Target architecture
@@ -37,7 +37,7 @@ enum directive_opcode : uint8_t {
     DIR_OPCODE_CONDITION = 0xD9, // Conditional assembly
     DIR_OPCODE_MACRO     = 0xDA, // Macro definition
     DIR_OPCODE_INCLUDE   = 0xDB, // Include other COIL binary
-    // 0xDC-0xDF reserved for future standard directives
+    // 0xDC-0xEF reserved for future standard directives
 };
 ```
 
@@ -108,26 +108,11 @@ Binary format:
 
 Target IDs:
 ```c
-enum target_id : uint16_t {
-    TARGET_ANY     = 0x0000, // Generic, architecture-independent
-    TARGET_X86     = 0x0001, // x86 (32-bit)
-    TARGET_X86_64  = 0x0002, // x86-64 (64-bit)
-    TARGET_ARM     = 0x0003, // ARM (32-bit)
-    TARGET_ARM64   = 0x0004, // ARM64 (64-bit)
-    TARGET_RISCV32 = 0x0005, // RISC-V (32-bit)
-    TARGET_RISCV64 = 0x0006, // RISC-V (64-bit)
-    // 0x0007-0xFFFF reserved for future architectures
+enum target_id : uint8_t {
+    TARGET_ANY     = 0x00, // Generic, architecture-independent
+    TARGET_CPU     = 0x01,
+    TARGET_GPU     = 0x02,
 };
-```
-
-Example (for x86-64):
-```
-D1 00 02 00 02 00
-```
-
-CEL representation:
-```
-.target x86-64
 ```
 
 ### Section Directive
@@ -141,7 +126,7 @@ Binary format:
 
 For custom sections:
 ```
-[0xD2][0xFF (SECTION_CUSTOM)][length: uint16_t][name_length: uint8_t][name: char[])[flags: uint8_t]
+[0xD2][0xFF (SECTION_CUSTOM)][length: uint16_t][name_length: uint8_t][name: char[]][flags: uint8_t]
 ```
 
 Example (for text section):
@@ -218,27 +203,6 @@ CEL representation:
   .arg 0, RQ0  // Return value
   .arg 1, RQ1  // First argument
 .end_abi
-```
-
-### Feature Control Directive
-
-Enables or disables architecture-specific features.
-
-Binary format:
-```
-[0xD7 (DIR_OPCODE_FEATURE)][feature_state: uint8_t][length: uint16_t][feature_id: uint16_t]
-```
-
-Where feature_state is 0x00 for disable, 0x01 for enable.
-
-Example (enable AVX2, feature ID 0x0102):
-```
-D7 01 02 00 02 01
-```
-
-CEL representation:
-```
-.feature avx2, on
 ```
 
 ### Optimization Control Directive

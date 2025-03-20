@@ -9,8 +9,8 @@ In the COIL binary format, instructions and directives share a common encoding s
 ```c
 // Opcode ranges
 #define OPCODE_RANGE_INSTRUCTION  0x00-0xCF  // Instructions
-#define OPCODE_RANGE_DIRECTIVE    0xD0-0xDF  // Directives
-#define OPCODE_RANGE_EXTENSION    0xE0-0xFF  // Implementation-specific extensions
+#define OPCODE_RANGE_DIRECTIVE    0xD0-0xEF  // Directives
+#define OPCODE_RANGE_EXTENSION    0xF0-0xFF  // Implementation-specific extensions
 ```
 
 ## Instruction Format
@@ -66,7 +66,7 @@ COIL instructions are organized into logical categories. Unlike traditional ISAs
 enum instruction_opcode : uint8_t {
     // No Operation (0x00)
     OP_NOP = 0x00, // No operation
-    
+
     // Control Flow (0x01 - 0x0F)
     OP_SYMB = 0x01, // Define a symbol
     OP_BR   = 0x02, // Unconditional branch to location
@@ -80,9 +80,8 @@ enum instruction_opcode : uint8_t {
     OP_WFE  = 0x0A, // Wait for event
     OP_SEV  = 0x0B, // Send event
     OP_TRAP = 0x0C, // Software trap
-    OP_HLT  = 0x0D, // Halt execution
-    // 0x0E-0x0F reserved for future control flow operations
-    
+    // 0x0D-0x0F reserved for future control flow operations
+
     // Arithmetic Operations (0x10 - 0x1F)
     OP_ADD  = 0x10, // Addition (for any numeric type)
     OP_SUB  = 0x11, // Subtraction (for any numeric type)
@@ -93,10 +92,8 @@ enum instruction_opcode : uint8_t {
     OP_ABS  = 0x16, // Absolute value (for any numeric type)
     OP_INC  = 0x17, // Increment (for any numeric type)
     OP_DEC  = 0x18, // Decrement (for any numeric type)
-    OP_ADDC = 0x19, // Add with carry (for integer types)
-    OP_SUBB = 0x1A, // Subtract with borrow (for integer types)
-    OP_MULH = 0x1B, // Multiplication high bits (for integer types)
-    
+    // 0x19-0x1F reserved for future arithmetic operations
+
     // Bit Manipulation (0x20 - 0x2F) - Applicable to integer types only
     OP_AND  = 0x20, // Bitwise AND
     OP_OR   = 0x21, // Bitwise OR
@@ -137,23 +134,17 @@ enum instruction_opcode : uint8_t {
     
     // Stack Operations (0x50 - 0x5F)
     OP_PUSH  = 0x50, // Push onto stack
-    OP_POP   = 0x51, // Pop from stack
-    OP_PUSHA = 0x52, // Push all registers
-    OP_POPA  = 0x53, // Pop all registers
-    OP_PUSHF = 0x54, // Push flags
-    OP_POPF  = 0x55, // Pop flags
-    OP_ADJSP = 0x56, // Adjust stack pointer
-    // 0x57-0x5F reserved for future stack operations
+    OP_PUSHA = 0x51, // Push all registers
+    OP_PUSHF = 0x52, // Push flags
+    OP_POP   = 0x53, // Pop from stack    
+    // 0x54-0x5F reserved for future stack operations
     
     // Variable Operations (0x60 - 0x6F)
     OP_VARCR = 0x60, // Create variable
     OP_VARDL = 0x61, // Delete variable
     OP_VARSC = 0x62, // Create variable scope
     OP_VAREND = 0x63, // End variable scope
-    OP_VARGET = 0x64, // Get variable value
-    OP_VARSET = 0x65, // Set variable value
-    OP_VARREF = 0x66, // Get variable reference
-    // 0x67-0x6F reserved for future variable operations
+    // 0x64-0x6F reserved for future variable operations
     
     // Conversion Operations (0x70 - 0x7F)
     OP_TRUNC = 0x70, // Truncate value
@@ -163,52 +154,10 @@ enum instruction_opcode : uint8_t {
     OP_ITOF  = 0x74, // Integer to float
     OP_FTOB  = 0x75, // Float to bits
     OP_BTOF  = 0x76, // Bits to float
-    OP_F32F64 = 0x77, // Float32 to Float64
-    OP_F64F32 = 0x78, // Float64 to Float32
-    // 0x79-0x7F reserved for future conversion operations
+    // 0x77-0x7F reserved for future conversion operations
     
-    // Atomic Operations (0x80 - 0x8F)
-    OP_ATOMLD = 0x80, // Atomic load
-    OP_ATOMST = 0x81, // Atomic store
-    OP_ATOMXC = 0x82, // Atomic exchange
-    OP_ATOMCMP = 0x83, // Atomic compare-exchange
-    OP_ATOMADD = 0x84, // Atomic add
-    OP_ATOMSUB = 0x85, // Atomic subtract
-    OP_ATOMAND = 0x86, // Atomic AND
-    OP_ATOMOR  = 0x87, // Atomic OR
-    OP_ATOMXOR = 0x88, // Atomic XOR
-    OP_ATOMMAX = 0x89, // Atomic maximum
-    OP_ATOMMIN = 0x8A, // Atomic minimum
-    OP_FENCE   = 0x8B, // Memory fence
-    OP_BARRIER = 0x8C, // Memory barrier
-    // 0x8D-0x8F reserved for future atomic operations
-    
-    // Special Operations (0x90 - 0x9F)
-    OP_SQRT = 0x90, // Square root (for numeric types)
-    OP_FMA  = 0x91, // Fused multiply-add (for numeric types)
-    OP_CEIL = 0x92, // Ceiling (for floating-point types)
-    OP_FLOOR = 0x93, // Floor (for floating-point types)
-    OP_ROUND = 0x94, // Round (for floating-point types)
-    // 0x95-0x9F reserved for future special operations
-    
-    // Conditional Operations (0xA0 - 0xAF)
-    OP_SELECT = 0xA0, // Conditional select
-    OP_CMOV   = 0xA1, // Conditional move
-    // 0xA2-0xAF reserved for future conditional operations
-    
-    // Vector/SIMD (reserved for future use)
-    // 0xB0-0xBF reserved for vector/SIMD operations
-    
-    // Function Support (0xC0 - 0xCF)
-    OP_ENTER  = 0xC0, // Function prologue
-    OP_LEAVE  = 0xC1, // Function epilogue
-    OP_PARAM  = 0xC2, // Function parameter
-    OP_RESULT = 0xC3, // Function result
-    OP_ALLOCA = 0xC4, // Allocate stack memory
-    // 0xC5-0xCF reserved for future function operations
-    
-    // Directive range: 0xD0-0xDF (defined in dir.md)
-    // Extension range: 0xE0-0xFF (implementation-specific)
+    // Directive range: 0xD0-0xEF (defined in dir.md)
+    // Extension range: 0xF0-0xFF (implementation-specific)
 };
 ```
 

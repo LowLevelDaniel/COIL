@@ -5,6 +5,11 @@ Just examples of how a COIL program should be laid out using the [COIL Explanato
 ## Simple Beginnings
 
 ```
+; metadata
+.version 1.0.0
+.target CPU
+.section text, "x"
+
 _start:
   VARSC
     ; int is the integer at the bitwidth of general purpose register width
@@ -65,21 +70,34 @@ _start:
 
 ## C Compatibility
 
+Here's a simple "Hello, World!" program in CEL (COIL Explanatory Language)
+
 ```
+.version 1.0.0
+.target CPU
+
+; start executable section called text
+; pass flags for read and execute
+.section text, EXEC | READ
+
 .abi "c-abi" .start
-  ; arguments
-
-
-  ; return argumnets
-  .ret 0, RQ0
-
-  ; stack
-
-
-  ; redscope
-
-
+  TODO
 .end
+
+.global main
+main:
+    VARSC                           ; Start variable scope
+    VARCR $0, ptr, hw_str           ; Create string variable
+    VARCR $1, uint, hw_str - hw_end ; Example to get sizeof string (for write system calls)
+    CALL c-abi, printf, ($0)        ; Call printf with string
+    MOV RQ0, 0                      ; Return value 0
+    VAREND                          ; End variable scope
+    RET                             ; Return from function
+
+.section data, READ
+hw_str:
+  .insert "Hello, World!\0"
+hw_end:
 
 ```
 
